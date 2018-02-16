@@ -1,0 +1,346 @@
+\PassOptionsToPackage{unicode=true}{hyperref} % options for packages loaded elsewhere
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[spanish,]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provides euro and other symbols
+\else % if luatex or xelatex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage[]{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\usepackage{hyperref}
+\hypersetup{
+            pdftitle={Tarea 0},
+            pdfauthor={Fabián Heredia Montiel},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+% set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[shorthands=off,main=spanish]{babel}
+\else
+  % load polyglossia as late as possible as it *could* call bidi if RTL lang (e.g. Hebrew or Arabic)
+  \usepackage{polyglossia}
+  \setmainlanguage[]{spanish}
+\fi
+
+\title{Tarea 0}
+\author{Fabián Heredia Montiel}
+\date{}
+
+\begin{document}
+\maketitle
+
+\hypertarget{suma-naturales}{%
+\section{1. Suma Naturales}\label{suma-naturales}}
+
+\hypertarget{a.-suma-cero}{%
+\subsection{a. Suma Cero}\label{a.-suma-cero}}
+
+Pd. \(\forall n: \mathbb{N} [n + 0 = n]\)
+
+\textbf{Base Inductiva}
+
+\(0 + 0 \overset{\text{def}}=0\)
+
+\textbf{Hipótesis Inductiva}
+
+\(n + 0 = n\)
+
+\textbf{Paso Inductivo}
+
+\(Sn + 0 \overset{\text{def}}=S(n + 0) \overset{\text{hip}}=Sn\)
+
+\hypertarget{b.-suma-uno-es-sucesor}{%
+\subsection{b. Suma uno es Sucesor}\label{b.-suma-uno-es-sucesor}}
+
+Pd. \(\forall n: \mathbb{N} [n + 1 = Sn]\)
+
+\textbf{Base Inductiva}
+
+\(0 + 1 \overset{\text{def}}=1 \overset{\text{def}}=S 0\)
+
+\textbf{Hipótesis Inductiva}
+
+\(n + 1 = Sn\)
+
+\textbf{Paso Inductivo}
+
+\(Sn + 1 \overset{\text{def}}=S(n + 1) \overset{\text{hip}}=S(Sn)\)
+
+\hypertarget{multiplicaciuxf3n-de-naturales}{%
+\section{2. Multiplicación de
+Naturales}\label{multiplicaciuxf3n-de-naturales}}
+
+\(n*0 := 0\)
+
+\(n*Sm := n + (n*m)\)
+
+\hypertarget{a.-cero-por-algo-es-cero}{%
+\subsection{a. Cero por Algo es Cero}\label{a.-cero-por-algo-es-cero}}
+
+Pd. \(\forall n : \mathbb{N} [0*n = 0]\)
+
+\textbf{Base Inductiva}
+
+\(0*0 \overset{\text{def}}=0\)
+
+\textbf{Hipótesis Inductiva}
+
+\(0*n = 0\)
+
+\textbf{Paso Inductivo}
+
+\(0*Sn \overset{\text{def}}=0 + (0*n) \overset{\text{hip}}=0 + 0 \overset{\text{def}}=0\)
+
+\hypertarget{b.-uno-es-identidad-derecha}{%
+\subsection{b. Uno es identidad
+derecha}\label{b.-uno-es-identidad-derecha}}
+
+Pd. \(\forall n : \mathbb{N} [n*1 = n]\)
+
+\(n*1 \overset{\text{def}}=n*(S 0) \overset{\text{def}}=n + (n * 0) \overset{\text{def}}=n + 0 = n\)
+
+\hypertarget{igualdad}{%
+\section{3. Igualdad}\label{igualdad}}
+
+\(f(0,0) := \top\)
+
+\(f(Sn,Sm) := f(n,m)\)
+
+\(f(n,m) := \bot\)
+
+\hypertarget{funciuxf3n-misteriosa}{%
+\section{4. Función Misteriosa}\label{funciuxf3n-misteriosa}}
+
+\[
+h(n,m) =
+    \begin{cases}
+        1           & \text{si} \ m = 0 \\
+        h(n*n, m/2) & \text{si} \ m = 2m' \\
+        n*h(n, m-1) & \text{si} \ m = 2m' + 1 \\
+    \end{cases}
+\]
+
+Renombrando y usando notación infija
+
+\[
+n^m =
+    \begin{cases}
+        1           & \text{si} \ m = 0 \\
+        (n*n)^{m/2} & \text{si} \ m = 2m' \\
+        n*(n^{m-1}) & \text{si} \ m = 2m' + 1 \\
+    \end{cases}
+\]
+
+La función misteriosa es la exponencial.
+
+\hypertarget{lista}{%
+\section{5. Lista}\label{lista}}
+
+\hypertarget{a.-concatenar-lista-vacuxeda-es-neutro}{%
+\subsection{a. Concatenar Lista Vacía es
+Neutro}\label{a.-concatenar-lista-vacuxeda-es-neutro}}
+
+Pd. \(\forall l: l_A [l ++ [] = l**\)
+
+\textbf{Base Inductiva}
+
+\([] ++ [] \overset{\text{def}}=[]\)
+
+\textbf{Hipótesis Inductiva}
+
+\(l ++ [] = l\)
+
+\textbf{Paso Inductivo}
+
+\((x:l) ++ [] \overset{\text{def}}=x:(l ++ []) \overset{\text{hip}}=x:l\)
+
+\hypertarget{reversa-de-lista}{%
+\section{6. Reversa de Lista}\label{reversa-de-lista}}
+
+\hypertarget{a.-definiciuxf3n-recursiva}{%
+\subsection{a. Definición Recursiva}\label{a.-definiciuxf3n-recursiva}}
+
+\(rev [] = []\)
+
+\(rev (x:xs) = (rev xs) ++ [x]\)
+
+\hypertarget{operaciones-de-naturales}{%
+\section{7. Operaciones de Naturales}\label{operaciones-de-naturales}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{suma ::} \DataTypeTok{Nat} \OtherTok{->} \DataTypeTok{Nat} \OtherTok{->} \DataTypeTok{Nat}
+\NormalTok{suma n }\DataTypeTok{Cero}  \FunctionTok{=}\NormalTok{ n}
+\NormalTok{suma n (}\DataTypeTok{S}\NormalTok{ m) }\FunctionTok{=} \DataTypeTok{S}\NormalTok{(suma n m)}
+
+\OtherTok{prod ::} \DataTypeTok{Nat} \OtherTok{->} \DataTypeTok{Nat} \OtherTok{->} \DataTypeTok{Nat}
+\NormalTok{prod _ }\DataTypeTok{Cero}  \FunctionTok{=} \DataTypeTok{Cero}
+\NormalTok{prod n (}\DataTypeTok{S}\NormalTok{ m) }\FunctionTok{=}\NormalTok{ suma n (prod n m)}
+
+\OtherTok{iguales ::} \DataTypeTok{Nat} \OtherTok{->} \DataTypeTok{Nat} \OtherTok{->} \DataTypeTok{Bool}
+\NormalTok{iguales }\DataTypeTok{Cero}  \DataTypeTok{Cero}  \FunctionTok{=} \DataTypeTok{True}
+\NormalTok{iguales (}\DataTypeTok{S}\NormalTok{ n) (}\DataTypeTok{S}\NormalTok{ m) }\FunctionTok{=}\NormalTok{ iguales n m}
+\NormalTok{iguales    _     _  }\FunctionTok{=} \DataTypeTok{False}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{exponencial}{%
+\section{8. Exponencial}\label{exponencial}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{par ::} \DataTypeTok{Nat} \OtherTok{->} \DataTypeTok{Bool}
+\NormalTok{par }\DataTypeTok{Cero} \FunctionTok{=} \DataTypeTok{True}
+\NormalTok{par (}\DataTypeTok{S}\NormalTok{ m) }\FunctionTok{=}\NormalTok{ no }\FunctionTok{.}\NormalTok{ par }\FunctionTok{$}\NormalTok{ m}
+
+\OtherTok{mitad ::} \DataTypeTok{Nat} \OtherTok{->} \DataTypeTok{Nat}
+\NormalTok{mitad }\DataTypeTok{Cero} \FunctionTok{=} \DataTypeTok{Cero}
+\NormalTok{mitad (}\DataTypeTok{S}\NormalTok{ (}\DataTypeTok{S}\NormalTok{ n)) }\FunctionTok{=} \DataTypeTok{S}\NormalTok{ (mitad n)}
+\NormalTok{mitad (}\DataTypeTok{S}\NormalTok{ _) }\FunctionTok{=} \DataTypeTok{Cero}
+
+\OtherTok{h ::} \DataTypeTok{Nat} \OtherTok{->} \DataTypeTok{Nat} \OtherTok{->} \DataTypeTok{Nat}
+\NormalTok{h _ }\DataTypeTok{Cero} \FunctionTok{=} \DataTypeTok{S} \DataTypeTok{Cero}
+\NormalTok{h n (}\DataTypeTok{S}\NormalTok{ m)}
+  \FunctionTok{|}\NormalTok{ par (}\DataTypeTok{S}\NormalTok{ m) }\FunctionTok{=}\NormalTok{ h (prod n n) (mitad (}\DataTypeTok{S}\NormalTok{ m))}
+  \FunctionTok{|}\NormalTok{ otherwise }\FunctionTok{=}\NormalTok{ prod n (h n m)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{primero-y-ultimo}{%
+\section{9. Primero y Ultimo}\label{primero-y-ultimo}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{primero ::}\NormalTok{ [a] }\OtherTok{->}\NormalTok{ a}
+\NormalTok{primero []     }\FunctionTok{=}\NormalTok{ undefined}
+\NormalTok{primero (x}\FunctionTok{:}\NormalTok{_) }\FunctionTok{=}\NormalTok{ x}
+
+\OtherTok{ultimo ::}\NormalTok{ [a] }\OtherTok{->}\NormalTok{ a}
+\NormalTok{ultimo     [] }\FunctionTok{=}\NormalTok{ undefined}
+\NormalTok{ultimo    [x] }\FunctionTok{=}\NormalTok{ x}
+\NormalTok{ultimo (_}\FunctionTok{:}\NormalTok{xs) }\FunctionTok{=}\NormalTok{ ultimo xs}
+
+\OtherTok{pyu ::}\NormalTok{ [a] }\OtherTok{->}\NormalTok{ (a,a)}
+\NormalTok{pyu l }\FunctionTok{=}\NormalTok{ (primero l, ultimo l)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{clona}{%
+\section{10. Clona}\label{clona}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{clona ::}\NormalTok{ [}\DataTypeTok{Int}\NormalTok{] }\OtherTok{->}\NormalTok{ [}\DataTypeTok{Int}\NormalTok{]}
+\NormalTok{clona [] }\FunctionTok{=}\NormalTok{ []}
+\NormalTok{clona (x}\FunctionTok{:}\NormalTok{xs) }\FunctionTok{=}\NormalTok{ aux x }\FunctionTok{++}\NormalTok{ clona xs}
+  \KeywordTok{where}\NormalTok{ aux n }\FunctionTok{=}\NormalTok{ [n }\FunctionTok{|}\NormalTok{ _ }\OtherTok{<-}\NormalTok{ [}\DecValTok{1}\FunctionTok{..}\NormalTok{n]]}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{agrupa}{%
+\section{11. Agrupa}\label{agrupa}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{agrupa ::}\NormalTok{ [}\DataTypeTok{Int}\NormalTok{] }\OtherTok{->}\NormalTok{ [[}\DataTypeTok{Int}\NormalTok{]]}
+\NormalTok{agrupa []     }\FunctionTok{=}\NormalTok{ []}
+\NormalTok{agrupa (x}\FunctionTok{:}\NormalTok{xs) }\FunctionTok{=}\NormalTok{ (x}\FunctionTok{:}\NormalTok{grupo) }\FunctionTok{:}\NormalTok{ agrupa restante}
+  \KeywordTok{where}
+\NormalTok{    repetido y }\FunctionTok{=}\NormalTok{ x }\FunctionTok{==}\NormalTok{ y}
+\NormalTok{    grupo      }\FunctionTok{=}\NormalTok{ takeWhile repetido xs}
+\NormalTok{    restante   }\FunctionTok{=}\NormalTok{ dropWhile repetido xs}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{freq}{%
+\section{12. Freq}\label{freq}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OtherTok{freq ::}\NormalTok{ [}\DataTypeTok{Int}\NormalTok{] }\OtherTok{->}\NormalTok{ [(}\DataTypeTok{Int}\NormalTok{, }\DataTypeTok{Int}\NormalTok{)]}
+\NormalTok{freq    []  }\FunctionTok{=}\NormalTok{ []}
+\NormalTok{freq (x}\FunctionTok{:}\NormalTok{xs) }\FunctionTok{=}\NormalTok{ (x, length mismos) }\FunctionTok{:}\NormalTok{ freq restantes}
+  \KeywordTok{where}
+\NormalTok{    mismos    }\FunctionTok{=}\NormalTok{ filter (x }\FunctionTok{==}\NormalTok{) (x}\FunctionTok{:}\NormalTok{xs)}
+\NormalTok{    restantes }\FunctionTok{=}\NormalTok{ filter (x }\FunctionTok{/=}\NormalTok{)    xs}
+\end{Highlighting}
+\end{Shaded}
+
+\end{document}
