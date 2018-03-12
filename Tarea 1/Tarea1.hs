@@ -4,6 +4,9 @@ Profesor: C. Moisés Vázquez Reyes
 Ayudante: Enrique Antonio Bernal Cedillo
 -}
 
+import Numeric.Natural(Natural)
+import Data.Maybe(fromMaybe)
+import Data.List(intersect)
 import Unificacion
 
 {-----------------------}
@@ -21,15 +24,42 @@ instance Show Lam_U where
              AppU e1 (VarU y)       -> "(" ++ show e1 ++ ")" ++ y
              AppU e1 e2             -> "(" ++ show e1 ++ ")" ++ " " ++ "(" ++ show e2 ++ ")"
 
+-- Variables Libres y Ligadas
+variablesLigadas :: Lam_U -> [Nombre]
+variablesLigadas (VarU _) = []
+variablesLigadas (LamU v e)   = v : variablesLigadas e
+variablesLigadas (AppU e1 e2) = variablesLigadas e1 ++ variablesLigadas e2
+
+variablesLibres :: Lam_U -> [Nombre]
+variablesLibres (VarU v) = [v]
+variablesLibres (LamU v e) = (variablesLibres e) `sin` v
+  where xs `sin` x = filter (/= x) xs
+variablesLibres (AppU e1 e2) = variablesLibres e1 ++ variablesLibres e2
+
 --Sustitución
 sust :: Lam_U -> Nombre -> Lam_U -> Lam_U
-sust (VarU var)        nombre e = if (var == nombre) then e else (VarU var)
-sust (LamU var cuerpo) nombre e = LamU var (sust cuerpo nombre e)
-sust (AppU l1 l2)      nombre e = AppU (sust l1 nombre e) (sust l2 nombre e)
+sust (VarU v)     o s = if (v == o) then s else (VarU v)
+sust (LamU v e)   o s = if (v == o) then LamU v e else LamU v (sust e o s)
+sust (AppU e1 e2) o s = AppU (sust e1 o s) (sust e2 o s)
+
+--Gamma Equivalencia de Variables Ligadas
+gammaEquiv :: Lam_U -> (Nombre, Nombre) -> Lam_U
+gammaEquiv (VarU v)     (_,_) = (VarU v)
+gammaEquiv (LamU v e)   (o,s) = if (v == o) then (LamU s (sust e o (VarU s)))
+                                            else (LamU v (gammaEquiv e (o,s)))
+gammaEquiv (AppU e1 e2) (o,s) = (AppU (gammaEquiv e1 (o,s)) (gammaEquiv e2 (o,s)))
 
 --Aplica la β-reducción de dos términos
 betaR :: Lam_U -> Lam_U
-betaR (AppU (LamU nombre cuerpo) e) = sust cuerpo nombre e
+betaR (AppU (LamU v c) e)
+  | null varsCol = sust c v e
+  | otherwise    = betaR (AppU (LamU v' c') e)
+    where
+      varsCol  = (variablesLigadas c) `intersect` (variablesLibres e)
+      varsCol' = map (++"'") varsCol
+      remplazo = zip varsCol varsCol'
+      c' = foldl (gammaEquiv) c remplazo
+      v' = fromMaybe v (lookup v remplazo)
 betaR l = l
 
 -- Checa si se puede β-reducir
@@ -47,16 +77,41 @@ formaNormal (AppU e1 e2) | betaRed (AppU e1 e2) = formaNormal (AppU (formaNormal
                          | otherwise = (AppU e1 e2)
 
 --Codifica los incisos de la pregunta 1
-
+-- Definiciones generales
 true'  = LamU "x" $ LamU "y" $ VarU "x"
 false' = LamU "x" $ LamU "y" $ VarU "y"
 pair   = LamU "x" $ LamU "y" $ LamU "p" $ AppU (AppU (VarU "p") (VarU "x")) (VarU "y")
 fst'   = LamU "p" $ AppU (VarU "p") true'
 snd'   = LamU "p" $ AppU (VarU "p") false'
 
+succ' = LamU "n" $ LamU "s" $ LamU "z" $ AppU (VarU "s") $ AppU (AppU (VarU "n") (VarU "s")) (VarU "z")
+churchN :: Natural -> Lam_U
+churchN 0 = LamU "s" $ LamU "z" $ VarU "z"
+churchN n = formaNormal (AppU succ' (churchN (n-1)))
+
+
 f1 = LamU "n" $ LamU "m" $ LamU "s" $ LamU "z" $ AppU (AppU (AppU (VarU "m") (VarU "n")) (VarU "s")) (VarU "z")
-g1 = LamU "n" $ LamU "s" $ LamU "z" $ AppU (VarU "n") $ AppU (AppU g1' (LamU "u" (VarU "z"))) (LamU "u" (VarU "u"))
+g1 = LamU "n" $ LamU "s" $ LamU "z" $ AppU (AppU (AppU (VarU "n") g1') (LamU "u" (VarU "z"))) (LamU "u" (VarU "u"))
   where g1' = LamU "h1" $ LamU "h2" $ AppU (VarU "h2") (AppU (VarU "h1") (VarU "s"))
+h1 = LamU "n" $ AppU fst' (AppU (AppU (VarU "n") ss) zz)
+  where ss = LamU "p" (AppU (AppU pair (AppU snd' (VarU "p"))) (AppU succ' (AppU snd' (VarU "p"))))
+        zz = AppU (AppU pair (churchN 0)) (churchN 0)
+
+--Cálculos
+-- f1 5 0 = λs.λz.s z = 1
+res1 = formaNormal (AppU (AppU f1 (churchN 5)) (churchN 0))
+-- f1 2 3 = λs.λz.s(s(s(s(s(s(s(s z))))))) = 8
+res2 = formaNormal (AppU (AppU f1 (churchN 2)) (churchN 3))
+
+-- g1 0 = λs.λz.z = 0
+res3 = formaNormal (AppU g1 (churchN 0))
+-- g1 3 = λs.λz.s(s z)) = 2
+res4 = formaNormal (AppU g1 (churchN 3))
+
+-- h1 1 = λs.λz.z = 0
+res5 = formaNormal (AppU h1 (churchN 1))
+-- h1 2 = λs.λz'.s z' = 1
+res6 = formaNormal (AppU h1 (churchN 2))
 
 --Codifica los incisos de la pregunta 2
 
