@@ -38,6 +38,7 @@ variablesLibres (AppU e1 e2) = variablesLibres e1 ++ variablesLibres e2
 
 --Sustitución
 sust :: Lam_U -> Nombre -> Lam_U -> Lam_U
+sust e o (VarU s) | o == s = e
 sust (VarU v)     o s = if (v == o) then s else (VarU v)
 sust (LamU v e)   o s = if (v == o) then LamU v e else LamU v (sust e o s)
 sust (AppU e1 e2) o s = AppU (sust e1 o s) (sust e2 o s)
@@ -80,6 +81,7 @@ formaNormal (AppU e1 e2) | betaRed (AppU e1 e2) = formaNormal (AppU (formaNormal
 -- Definiciones generales
 true'  = LamU "x" $ LamU "y" $ VarU "x"
 false' = LamU "x" $ LamU "y" $ VarU "y"
+not'   = LamU "p" $ LamU "x" $ LamU "y" $ AppU (AppU (VarU "p") (VarU "y")) (VarU "x")
 pair   = LamU "x" $ LamU "y" $ LamU "p" $ AppU (AppU (VarU "p") (VarU "x")) (VarU "y")
 fst'   = LamU "p" $ AppU (VarU "p") true'
 snd'   = LamU "p" $ AppU (VarU "p") false'
@@ -140,6 +142,10 @@ res11 = formaNormal (AppU h2 (scottN 0))
 res12 = formaNormal (AppU h2 (scottN 5))
 
 --Codifica los incisos de la pregunta 3
+yCombinator = LamU "f" $ AppU (LamU "x" (AppU (VarU "f") (AppU (VarU "x") (VarU "x")))) (LamU "x" (AppU (VarU "f") (AppU (VarU "x") (VarU "x"))))
+
+casiImpar = LamU "f" $ LamU "n" $ AppU (AppU (AppU h2 (VarU "n")) false') (AppU not' (AppU (VarU "f") (AppU g2 (VarU "n"))))
+impar = formaNormal (AppU yCombinator casiImpar)
 
 {-----------------------}
 --INFERENCIA DE TIPOS--
@@ -190,7 +196,7 @@ algoritmoW e = let (Deriv (ctx,e',t),_) = w e [] in Deriv (elimRep ctx,e',t) whe
 
 
 --Realiza el algoritmo W en una expresión LamAB utilizando una lista de nombres que ya están ocupados.
-w::LamAB->[Nombre]->(Juicio,[Nombre])
+w :: LamAB -> [Nombre] -> (Juicio,[Nombre])
 w e vars = error "Te toca"
 
 
