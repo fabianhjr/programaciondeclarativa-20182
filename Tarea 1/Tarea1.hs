@@ -87,7 +87,7 @@ snd'   = LamU "p" $ AppU (VarU "p") false'
 succ' = LamU "n" $ LamU "s" $ LamU "z" $ AppU (VarU "s") $ AppU (AppU (VarU "n") (VarU "s")) (VarU "z")
 churchN :: Natural -> Lam_U
 churchN 0 = LamU "s" $ LamU "z" $ VarU "z"
-churchN n = formaNormal (AppU succ' (churchN (n-1)))
+churchN n = formaNormal $ AppU succ' (churchN (n-1))
 
 
 f1 = LamU "n" $ LamU "m" $ LamU "s" $ LamU "z" $ AppU (AppU (AppU (VarU "m") (VarU "n")) (VarU "s")) (VarU "z")
@@ -114,6 +114,30 @@ res5 = formaNormal (AppU h1 (churchN 1))
 res6 = formaNormal (AppU h1 (churchN 2))
 
 --Codifica los incisos de la pregunta 2
+-- Definiciones Generales
+scottN :: Natural -> Lam_U
+scottN 0 = LamU "x" $ LamU "y" (VarU "x")
+scottN n = formaNormal $ LamU "x" $ LamU "y" $ (AppU (VarU "y") (scottN (n-1)))
+
+f2 = LamU "n" $ LamU "x" $ LamU "y" $ AppU (VarU "y") (VarU "n")
+g2 = LamU "n" $ AppU (AppU (VarU "n") (scottN 0)) (LamU "x" (VarU "x"))
+h2 = LamU "n" $ AppU (AppU (VarU "n") true') (LamU "x" false')-- λn.n true (λx.false)
+
+-- Cálculos
+-- f2 0 = λx.λy.y(λx.λy.x) = 1
+res7 = formaNormal (AppU f2 (scottN 0))
+-- f2 3 = λx.λy.y(λx.λy.y(λx.λy.y(λx.λy.y(λx.λy.x)))) = 4
+res8 = formaNormal (AppU f2 (scottN 3))
+
+-- g2 1 = λx.λy.x = 0
+res9 = formaNormal (AppU g2 (scottN 1))
+-- g2 4 = λx.λy.y(λx.λy.y(λx.λy.y(λx.λy.x))) = 3
+res10 = formaNormal (AppU g2 (scottN 4))
+
+-- h2 0 = λx.λy.x = True
+res11 = formaNormal (AppU h2 (scottN 0))
+-- h2 5 = λx.λy.y = False
+res12 = formaNormal (AppU h2 (scottN 5))
 
 --Codifica los incisos de la pregunta 3
 
