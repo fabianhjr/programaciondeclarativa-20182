@@ -116,7 +116,11 @@ betaR (AppU (LamU v e) s)
   where
     colisiones = colisionanAlSustituir v e s
     e'         = foldl alphaEquivAuto e colisiones
-betaR _ = undefined
+betaR e = case e of
+            (VarU v)     -> VarU v
+            (LamU v e1)  -> LamU v $ betaR e1
+            (AppU e1 e2) -> if betaRed e1 then AppU (betaR e1) e2
+                            else AppU e1 (betaR e2)
 
 --
 -- Busca la formaNormal en orden normal
@@ -125,7 +129,7 @@ formaNormal :: Lam_U -> Lam_U
 formaNormal (VarU x)    = VarU x
 formaNormal (LamU x e1) = LamU x (formaNormal e1)
 formaNormal (AppU (LamU n c) e2)      = formaNormal $ betaR $ AppU (LamU n c) e2
-formaNormal (AppU e1 e2) | betaRed e1 = formaNormal $ AppU (formaNormal e1) e2
+formaNormal (AppU e1 e2) | betaRed e1 = formaNormal $ AppU (betaR e1) e2
                          | betaRed e2 = AppU e1 (formaNormal e2)
                          | otherwise  = AppU e1 e2
 
@@ -235,7 +239,7 @@ yCombinator = LamU "f" $ AppU (LamU "x" (AppU (VarU "f") (AppU (VarU "x") (VarU 
 casiImpar :: Lam_U
 casiImpar = LamU "f" $ LamU "n" $ AppU (AppU (AppU h2 (VarU "n")) lFalse) (AppU lNot (AppU (VarU "f") (AppU g2 (VarU "n"))))
 impar :: Lam_U
-impar = formaNormal (AppU yCombinator casiImpar)
+impar = AppU yCombinator casiImpar
 
 {-----------------------}
 --INFERENCIA DE TIPOS--
