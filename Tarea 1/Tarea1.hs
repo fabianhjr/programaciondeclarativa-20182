@@ -56,7 +56,7 @@ sustituir b e s = case e of
                     (VarU v)     -> if v == b then s
                                     else VarU v
                     (LamU v e1)  -> LamU v $ sustituir b e1 s
-                    (AppU e1 e2) -> AppU (sustituir b e1 s) (sustituir b e1 s)
+                    (AppU e1 e2) -> AppU (sustituir b e1 s) (sustituir b e2 s)
 
 --
 -- Alpha Equivalencia de Variables Ligadas
@@ -95,8 +95,11 @@ betaR (AppU (LamU v e) s)
   | not $ colisionanAlSustituir v e s = sustituir v e s
   | otherwise = betaR (AppU (LamU v e') s)
   where
-    colisiones = varsLigadasEn e v `intersect` varsLibres s
-    e' = foldl alphaEquivAuto e colisiones
+    primerCol = head $ varsLigadasEn e v `intersect` varsLibres s
+    posiblesRemplazos = iterate (++ "'") $ primerCol
+    remplazo = head . dropWhile (\s' -> colisionanAlSustituir primerCol e (VarU s')) $ posiblesRemplazos
+    v' = if v == primerCol then remplazo else v
+    e' = alphaEquiv e primerCol remplazo
 betaR e = case e of
             (VarU v)     -> VarU v
             (LamU v e1)  -> LamU v $ betaR e1
@@ -109,7 +112,7 @@ betaR e = case e of
 formaNormal :: Lam_U -> Lam_U
 formaNormal (VarU x)   = VarU x
 formaNormal (LamU x e) = LamU x (formaNormal e)
-formaNormal (AppU (LamU n c) e2)      = formaNormal . betaR $ AppU (LamU n c) e2
+formaNormal (AppU (LamU n c) e2)      = formaNormal $ betaR $ AppU (LamU n c) e2
 formaNormal (AppU e1 e2) | betaRed e1 = formaNormal $ AppU (betaR e1) e2
                          | betaRed e2 = AppU e1 (formaNormal e2)
                          | otherwise  = AppU e1 e2
