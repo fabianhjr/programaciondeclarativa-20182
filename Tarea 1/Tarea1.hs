@@ -28,18 +28,6 @@ instance Show Lam_U where
 -- Variables Libres y Ligadas
 --
 
--- | Checa si una variable aparece en una expresión
---
--- >>> "x" `esVarEn` (LamU "x" (VarU "y"))
--- False
--- >>> "x" `esVarEn` (VarU "x")
--- True
-esVarEn :: Nombre -> Lam_U -> Bool
-esVarEn b e = case e of
-              (VarU v)     -> b == v
-              (LamU _ e1)  -> b `esVarEn` e1
-              (AppU e1 e2) -> b `esVarEn` e1 || b `esVarEn` e2
-
 -- | Lista todas las variables libres en una expresión
 --
 -- >>> varsLibres (LamU "x" (VarU "x"))
@@ -54,19 +42,26 @@ varsLibres e = case e of
   where l `without` x = filter (/= x) l
 
 
+-- | Lista todas las variables ligadas en una expresión para una variable libre dada
+--
 varsLigadasEn :: Lam_U -> Nombre -> [Nombre]
 varsLigadasEn e b = case e of
                       (VarU _)     -> []
-                      (LamU v e1)  -> if b `esVarEn` e1
+                      (LamU v e1)  -> if b `elem` varsLibres e1
                                       then v : varsLigadasEn e1 b
                                       else     varsLigadasEn e1 b
                       (AppU e1 e2) -> varsLigadasEn e1 b ++ varsLigadasEn e2 b
 
+-- | Obtiene una lista de variables libres que se ligan al sustituir
+--
 colisionanAlSustituir :: Nombre -> Lam_U -> Lam_U -> [Nombre]
 colisionanAlSustituir b e s = varsLigadasEn e b `intersect` varsLibres s
 
 --
--- Sustitución Inocente
+-- Operaciones de LamU
+--
+
+-- | Sustitución Inocente de Variables Libres
 --
 sustituir :: Nombre -> Lam_U -> Lam_U -> Lam_U
 sustituir b e s = case e of
@@ -76,8 +71,7 @@ sustituir b e s = case e of
                                     else LamU v $ sustituir b e1 s
                     (AppU e1 e2) -> AppU (sustituir b e1 s) (sustituir b e2 s)
 
---
--- Alpha Equivalencia de Variables Ligadas
+-- | Alpha Equivalencia de Variables Ligadas
 --
 alphaEquiv :: Lam_U -> Nombre -> Nombre -> Lam_U
 alphaEquiv e b s
@@ -89,6 +83,8 @@ alphaEquiv e b s
                                   else LamU v $ alphaEquiv e1 b s
                   (AppU e1 e2) -> AppU (alphaEquiv e1 b s) (alphaEquiv e2 b s)
 
+-- | Busca la primer Alpha Equivalencia de añádir tildes sin colisionar con variables libres
+--
 alphaEquivAuto :: Lam_U -> Nombre -> Lam_U
 alphaEquivAuto e b = alphaEquiv e b remplazo
   where
@@ -96,8 +92,7 @@ alphaEquivAuto e b = alphaEquiv e b remplazo
     pruebaRemplazo s' = null $ colisionanAlSustituir b e (VarU s')
     remplazo = head . filter pruebaRemplazo $ posiblesRemplazos
 
---
--- Checa si se puede β-reducir
+-- | Checa si se puede β-reducir
 --
 betaRed :: Lam_U -> Bool
 betaRed e = case e of
@@ -106,8 +101,7 @@ betaRed e = case e of
               (AppU (LamU _ _) _) -> True
               (AppU e1 e2)        -> betaRed e1 || betaRed e2
 
---
--- Aplica una β-reducción si es posible.
+-- | Aplica la primer β-reducción posible.
 --
 betaR :: Lam_U -> Lam_U
 betaR (AppU (LamU v e) s)
@@ -122,8 +116,7 @@ betaR e = case e of
             (AppU e1 e2) -> if betaRed e1 then AppU (betaR e1) e2
                             else AppU e1 (betaR e2)
 
---
--- Busca la formaNormal en orden normal
+-- | Busca la formaNormal en orden normal
 --
 formaNormal :: Lam_U -> Lam_U
 formaNormal (VarU x)    = VarU x
@@ -180,17 +173,27 @@ h1 = LamU "n" $ AppU lFst (AppU (AppU (VarU "n") ss) zz) -- λn.fst (n ss zz)
         zz = AppU (AppU lPair (churchN 0)) (churchN 0) -- pair 0 0
 
 --Cálculos
--- f1 5 0 = λs.λz.s z = 1
+
+-- |
+-- >>> res1
+-- (λs.(λz.(s z)))
 res1 :: Lam_U
 res1 = formaNormal (AppU (AppU f1 (churchN 5)) (churchN 0))
--- f1 2 3 = λs.λz.s(s(s(s(s(s(s(s z))))))) = 8
+
+-- |
+-- >>> res2
+-- (λs.(λz.(s (s (s (s (s (s (s (s z))))))))))
 res2 :: Lam_U
 res2 = formaNormal (AppU (AppU f1 (churchN 2)) (churchN 3))
 
--- g1 0 = λs.λz.z = 0
+-- |
+-- >>> res3
+-- (λs.(λz.z))
 res3 :: Lam_U
 res3 = formaNormal (AppU g1 (churchN 0))
--- g1 3 = λs.λz.s(s z)) = 2
+-- |
+-- >>> res4
+-- (λs.(λz.(s (s z))))
 res4 :: Lam_U
 res4 = formaNormal (AppU g1 (churchN 3))
 
@@ -235,7 +238,6 @@ res12 = formaNormal (AppU h2 (scottN 5))
 yCombinator :: Lam_U
 yCombinator = LamU "f" $ AppU (LamU "x" (AppU (VarU "f") (AppU (VarU "x") (VarU "x")))) (LamU "x" (AppU (VarU "f") (AppU (VarU "x") (VarU "x"))))
 
--- TODO: Pendiente a resolver g2
 casiImpar :: Lam_U
 casiImpar = LamU "f" $ LamU "n" $ AppU (AppU (AppU h2 (VarU "n")) lFalse) (AppU lNot (AppU (VarU "f") (AppU g2 (VarU "n"))))
 impar :: Lam_U
