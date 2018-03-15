@@ -17,68 +17,106 @@ data Lam_U = VarU Nombre | LamU Nombre Lam_U | AppU Lam_U Lam_U
 
 instance Show Lam_U where
   show t = case t of
-             VarU x   -> x
-             LamU x e -> "λ" ++ x ++ "." ++ show e
-             AppU (VarU x) (VarU y) -> x ++ " " ++ y
-             AppU (VarU x) e2       -> x ++ "(" ++ show e2 ++ ")"
-             AppU e1 (VarU y)       -> "(" ++ show e1 ++ ")" ++ y
-             AppU e1 e2             -> "(" ++ show e1 ++ ")" ++ " " ++ "(" ++ show e2 ++ ")"
+             VarU x     -> x
+             LamU x e   -> "(λ" ++ x ++ "." ++ show e ++ ")"
+             AppU e1 e2 -> "(" ++ show e1 ++ " " ++ show e2 ++ ")"
 
+--
 -- Variables Libres y Ligadas
-variablesLigadas :: Lam_U -> [Nombre]
-variablesLigadas (VarU _) = []
-variablesLigadas (LamU v e)   = v : variablesLigadas e
-variablesLigadas (AppU e1 e2) = variablesLigadas e1 ++ variablesLigadas e2
+--
+esVarEn :: Nombre -> Lam_U -> Bool
+esVarEn b e = case e of
+              (VarU v)     -> b == v
+              (LamU v e1)  -> b `esVarEn` e1
+              (AppU e1 e2) -> b `esVarEn` e1 || b `esVarEn` e2
 
-variablesLibres :: Lam_U -> [Nombre]
-variablesLibres (VarU v) = [v]
-variablesLibres (LamU v e) = (variablesLibres e) `sin` v
-  where xs `sin` x = filter (/= x) xs
-variablesLibres (AppU e1 e2) = variablesLibres e1 ++ variablesLibres e2
+varsLibres :: Lam_U -> [Nombre]
+varsLibres e = case e of
+                 (VarU v)     -> [v]
+                 (LamU v e1)  -> varsLibres e1 `sin` v
+                 (AppU e1 e2) -> varsLibres e1 ++ varsLibres e2
+  where l `sin` x = filter (/= x) l
 
---Sustitución
-sust :: Lam_U -> Nombre -> Lam_U -> Lam_U
-sust e o (VarU s) | o == s = e
-sust (VarU v)     o s = if (v == o) then s else (VarU v)
-sust (LamU v e)   o s = if (v == o) then LamU v e else LamU v (sust e o s)
-sust (AppU e1 e2) o s = AppU (sust e1 o s) (sust e2 o s)
+varsLigadasEn :: Lam_U -> Nombre -> [Nombre]
+varsLigadasEn e b = case e of
+                      (VarU _)     -> []
+                      (LamU v e1)  -> if b `esVarEn` e1
+                                      then v : varsLigadasEn e1 b
+                                      else     varsLigadasEn e1 b
+                      (AppU e1 e2) -> varsLigadasEn e1 b ++ varsLigadasEn e2 b
 
---Gamma Equivalencia de Variables Ligadas
-gammaEquiv :: Lam_U -> (Nombre, Nombre) -> Lam_U
-gammaEquiv (VarU v)     (_,_) = (VarU v)
-gammaEquiv (LamU v e)   (o,s) = if (v == o) then (LamU s (sust e o (VarU s)))
-                                            else (LamU v (gammaEquiv e (o,s)))
-gammaEquiv (AppU e1 e2) (o,s) = (AppU (gammaEquiv e1 (o,s)) (gammaEquiv e2 (o,s)))
+colisionanAlSustituir :: Nombre -> Lam_U -> Lam_U -> Bool
+colisionanAlSustituir b e s = not . null $ varsLigadasEn e b `intersect` varsLibres s
 
---Aplica la β-reducción de dos términos
-betaR :: Lam_U -> Lam_U
-betaR (AppU (LamU v c) e)
-  | null varsCol = sust c v e
-  | otherwise    = betaR (AppU (LamU v' c') e)
-    where
-      varsCol  = (variablesLigadas c) `intersect` (variablesLibres e)
-      varsCol' = map (++"'") varsCol
-      remplazo = zip varsCol varsCol'
-      c' = foldl (gammaEquiv) c remplazo
-      v' = fromMaybe v (lookup v remplazo)
-betaR l = l
+--
+-- Sustitución Inocente
+--
+sustituir :: Nombre -> Lam_U -> Lam_U -> Lam_U
+sustituir b e s = case e of
+                    (VarU v)     -> if v == b then s
+                                    else VarU v
+                    (LamU v e1)  -> LamU v $ sustituir b e1 s
+                    (AppU e1 e2) -> AppU (sustituir b e1 s) (sustituir b e1 s)
 
+--
+-- Alpha Equivalencia de Variables Ligadas
+--
+alphaEquiv :: Lam_U -> Nombre -> Nombre -> Lam_U
+alphaEquiv e b s
+  | colisionanAlSustituir b e (VarU s) = error "Error: Colision"
+  | otherwise = case e of
+                  (VarU v)     -> VarU v
+                  (LamU v e1)  -> if v == b
+                                  then LamU s $ sustituir b e1 (VarU s)
+                                  else LamU v $ alphaEquiv e1 b s
+                  (AppU e1 e2) -> AppU (alphaEquiv e1 b s) (alphaEquiv e2 b s)
+
+alphaEquivAuto :: Lam_U -> Nombre -> Lam_U
+alphaEquivAuto e b = alphaEquiv e b remplazo
+  where
+    posiblesRemplazos = iterate (++ "'") b
+    remplazo = head . dropWhile (\s' -> colisionanAlSustituir b e (VarU s')) $ posiblesRemplazos
+
+--
 -- Checa si se puede β-reducir
+--
 betaRed :: Lam_U -> Bool
-betaRed (VarU _)   = False
-betaRed (LamU _ e) = betaRed e
-betaRed (AppU (LamU _ _) _) = True
-betaRed (AppU e1 e2) = betaRed e1 || betaRed e2
+betaRed e = case e of
+              (VarU _)            -> False
+              (LamU _ e1)         -> betaRed e1
+              (AppU (LamU _ _) _) -> True
+              (AppU e1 e2)        -> betaRed e1 || betaRed e2
 
-formaNormal::Lam_U->Lam_U
-formaNormal (VarU x)     = VarU x
-formaNormal (LamU x e)   = LamU x (formaNormal e)
-formaNormal (AppU (LamU n c) e2) = formaNormal . betaR $ (AppU (LamU n c) e2)
-formaNormal (AppU e1 e2) | betaRed (AppU e1 e2) = formaNormal (AppU (formaNormal e1) (formaNormal e2))
-                         | otherwise = (AppU e1 e2)
+--
+-- Aplica la primer β-reducción posible.
+--
+betaR :: Lam_U -> Lam_U
+betaR (AppU (LamU v e) s)
+  | not $ colisionanAlSustituir v e s = sustituir v e s
+  | otherwise = betaR (AppU (LamU v e') s)
+  where
+    colisiones = varsLigadasEn e v `intersect` varsLibres s
+    e' = foldl alphaEquivAuto e colisiones
+betaR e = case e of
+            (VarU v)     -> VarU v
+            (LamU v e1)  -> LamU v $ betaR e1
+            (AppU e1 e2) -> if betaRed e1 then AppU (betaR e1) e2
+                            else AppU e1 (betaR e2)
 
---Codifica los incisos de la pregunta 1
--- Definiciones generales
+--
+-- Busca la formaNormal en orden normal
+--
+formaNormal :: Lam_U -> Lam_U
+formaNormal (VarU x)   = VarU x
+formaNormal (LamU x e) = LamU x (formaNormal e)
+formaNormal (AppU (LamU n c) e2)      = formaNormal . betaR $ AppU (LamU n c) e2
+formaNormal (AppU e1 e2) | betaRed e1 = formaNormal $ AppU (betaR e1) e2
+                         | betaRed e2 = AppU e1 (formaNormal e2)
+                         | otherwise  = AppU e1 e2
+
+--
+-- Definiciones Generales en λ
+--
 true'  = LamU "x" $ LamU "y" $ VarU "x"
 false' = LamU "x" $ LamU "y" $ VarU "y"
 not'   = LamU "p" $ LamU "x" $ LamU "y" $ AppU (AppU (VarU "p") (VarU "y")) (VarU "x")
@@ -86,12 +124,25 @@ pair   = LamU "x" $ LamU "y" $ LamU "p" $ AppU (AppU (VarU "p") (VarU "x")) (Var
 fst'   = LamU "p" $ AppU (VarU "p") true'
 snd'   = LamU "p" $ AppU (VarU "p") false'
 
+--
+-- Numerales de Church
+--
 succ' = LamU "n" $ LamU "s" $ LamU "z" $ AppU (VarU "s") $ AppU (AppU (VarU "n") (VarU "s")) (VarU "z")
 churchN :: Natural -> Lam_U
 churchN 0 = LamU "s" $ LamU "z" $ VarU "z"
 churchN n = formaNormal $ AppU succ' (churchN (n-1))
 
+--
+-- Numerales de Scott
+--
 
+scottN :: Natural -> Lam_U
+scottN 0 = LamU "x" $ LamU "y" (VarU "x")
+scottN n = LamU "x" $ LamU "y" $ AppU (VarU "y") (scottN (n-1))
+
+--
+--Codifica los incisos de la pregunta 1
+--
 f1 = LamU "n" $ LamU "m" $ LamU "s" $ LamU "z" $ AppU (AppU (AppU (VarU "m") (VarU "n")) (VarU "s")) (VarU "z")
 g1 = LamU "n" $ LamU "s" $ LamU "z" $ AppU (AppU (AppU (VarU "n") g1') (LamU "u" (VarU "z"))) (LamU "u" (VarU "u"))
   where g1' = LamU "h1" $ LamU "h2" $ AppU (VarU "h2") (AppU (VarU "h1") (VarU "s"))
@@ -116,11 +167,6 @@ res5 = formaNormal (AppU h1 (churchN 1))
 res6 = formaNormal (AppU h1 (churchN 2))
 
 --Codifica los incisos de la pregunta 2
--- Definiciones Generales
-scottN :: Natural -> Lam_U
-scottN 0 = LamU "x" $ LamU "y" (VarU "x")
-scottN n = formaNormal $ LamU "x" $ LamU "y" $ (AppU (VarU "y") (scottN (n-1)))
-
 f2 = LamU "n" $ LamU "x" $ LamU "y" $ AppU (VarU "y") (VarU "n")
 g2 = LamU "n" $ AppU (AppU (VarU "n") (scottN 0)) (LamU "x" (VarU "x"))
 h2 = LamU "n" $ AppU (AppU (VarU "n") true') (LamU "x" false')-- λn.n true (λx.false)
@@ -183,7 +229,7 @@ type Ctx = [(Nombre,Tipo)]
 data Juicio = Deriv (Ctx,LamABT,Tipo)
 
 instance Show Juicio where
-    show (Deriv (ctx, e, t)) = show ctx++" ⊢ "++show e++" : "++show t
+  show (Deriv (ctx, e, t)) = show ctx++" ⊢ "++show e++" : "++show t
 
 
 
