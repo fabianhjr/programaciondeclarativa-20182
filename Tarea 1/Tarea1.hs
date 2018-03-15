@@ -72,7 +72,8 @@ sustituir :: Nombre -> Lam_U -> Lam_U -> Lam_U
 sustituir b e s = case e of
                     (VarU v)     -> if v == b then s
                                     else VarU v
-                    (LamU v e1)  -> LamU v $ sustituir b e1 s
+                    (LamU v e1)  -> if v == b then LamU v e1
+                                    else LamU v $ sustituir b e1 s
                     (AppU e1 e2) -> AppU (sustituir b e1 s) (sustituir b e2 s)
 
 --
@@ -199,7 +200,6 @@ res6 = formaNormal (AppU h1 (churchN 2))
 --Codifica los incisos de la pregunta 2
 f2 :: Lam_U
 f2 = LamU "n" $ LamU "x" $ LamU "y" $ AppU (VarU "y") (VarU "n") -- λn.λx.λy.yn
--- TODO: Verificar porque no es pred.
 g2 :: Lam_U
 g2 = LamU "n" $ AppU (AppU (VarU "n") (scottN 0)) (LamU "x" (VarU "x")) -- λn.n 0 (λx.x)
 h2 :: Lam_U
