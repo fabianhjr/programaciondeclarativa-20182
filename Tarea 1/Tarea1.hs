@@ -398,12 +398,19 @@ instance Show Juicio where
 --
 -- | Realiza la inferencia de tipos de una expresión LamABT
 --
+-- >>> algoritmoW $ VNum 10
+-- [] ⊢ VNumT 10 : ℕ
+-- >>> algoritmoW $ Lam "x" (Var "x")
+-- [] ⊢ LamT "x" X0 (VarT "x") : (X0->X0)
+-- >>> algoritmoW $ Lam "x" (Var "y")
+-- [("y",X0)] ⊢ LamT "x" X1 (VarT "y") : (X1->X0)
+-- >>> algoritmoW $ App (Lam "x" (Var "y")) (VBool True)
+-- [("y",X0)] ⊢ AppT (LamT "x" X1 (VarT "y")) (VBoolT True) : X0
+--
 -- >>> algoritmoW $ Lam "x" $ Lam "y" $ Var "y"
 -- [] ⊢ LamT "x" X1 (LamT "y" X0 (VarT "y")) : (X1->(X0->X0))
 -- >>> algoritmoW $ App (App (Var "x") (Var "y")) (Var "z")
 -- [("x",X3->(X4->X0)),("y",X3),("z",X4)]|-AppT (AppT (VarT "x") (VarT "y")) (VarT "z"):X0
--- >>> algoritmoW $ App (Var "x") (Var "x")
--- *** Exception: No se pudo unificar.
 -- >>> algoritmoW $ Lam "s" $ Lam "z" $ App (Var "s") (Var "z")
 -- []|-LamT "s" X2->X0 (LamT "z" X2 (AppT (VarT "s") (VarT "z"))):(X2->X0)->(X2->X0)
 -- >>> algoritmoW $ App (App (Var "x") (Var "z")) (App (Var "y") (Var "z"))
@@ -416,6 +423,9 @@ instance Show Juicio where
 -- [("f",X2->Bool),("y",X2)]|-IfteT (IszeroT (SumaT (VNumT 2) (VNumT 0))) (AppT (VarT "f") (VarT "y")) (VBoolT False):Bool
 -- >>> algoritmoW $ Lam "x" $ Lam "y" $ Ifte (VBool True) (App (Var "f") (Var "x")) (Var "y")
 -- [("f",X2->X3)]|-LamT "x" X2 (LamT "y" X3 (IfteT (VBoolT True) (AppT (VarT "f") (VarT "x")) (VarT "y"))):X2->(X3->X3)
+--
+-- >>> algoritmoW $ App (Var "x") (Var "x")
+-- *** Exception: No se pudo unificar.
 -- >>> algoritmoW $ App (Suma (VNum 1) (Var "n")) (Var "w")
 -- *** Exception: No se pudo unificar.
 algoritmoW :: LamAB->Juicio
