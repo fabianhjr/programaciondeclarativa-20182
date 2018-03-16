@@ -10,19 +10,20 @@ import Numeric.Natural (Natural)
 import Data.List (intersect)
 import Unificacion
 
-
 {-----------------------}
 -- CÁLCULO LAMBDA PURO --
 {-----------------------}
 
-data Lam_U = VarU Nombre | LamU Nombre Lam_U | AppU Lam_U Lam_U
+data Lam_U =
+       VarU Nombre
+     | LamU Nombre Lam_U
+     | AppU Lam_U Lam_U
 
 instance Show Lam_U where
   show t = case t of
              VarU x     -> x
              LamU x e   -> "(λ" ++ x ++ "." ++ show e ++ ")"
              AppU e1 e2 -> "(" ++ show e1 ++ " " ++ show e2 ++ ")"
-
 
 --
 -- Variables Libres y Ligadas
@@ -47,9 +48,8 @@ varsLibres e = case e of
 varsLigadasEn :: Lam_U -> Nombre -> [Nombre]
 varsLigadasEn e b = case e of
                       (VarU _)     -> []
-                      (LamU v e1)  -> if b `elem` varsLibres e1
-                                      then v : varsLigadasEn e1 b
-                                      else     varsLigadasEn e1 b
+                      (LamU v e1)  -> if b /= v && b `elem` varsLibres e1
+                                      then v : varsLigadasEn e1 b else []
                       (AppU e1 e2) -> varsLigadasEn e1 b ++ varsLigadasEn e2 b
 
 -- | Obtiene una lista de variables libres que se ligan al sustituir
@@ -119,12 +119,13 @@ betaR e = case e of
 -- | Busca la formaNormal en orden normal
 --
 formaNormal :: Lam_U -> Lam_U
-formaNormal (VarU x)    = VarU x
-formaNormal (LamU x e1) = LamU x (formaNormal e1)
-formaNormal (AppU (LamU n c) e2)      = formaNormal $ betaR $ AppU (LamU n c) e2
-formaNormal (AppU e1 e2) | betaRed e1 = formaNormal $ AppU (betaR e1) e2
-                         | betaRed e2 = AppU e1 (formaNormal e2)
-                         | otherwise  = AppU e1 e2
+formaNormal e = case e of
+                  (VarU x)             -> VarU x
+                  (LamU x e1)          -> LamU x (formaNormal e1)
+                  (AppU (LamU n c) e2) -> formaNormal $ betaR $ AppU (LamU n c) e2
+                  (AppU e1 e2)         -> if betaRed e1
+                                          then formaNormal $ AppU (betaR e1) e2
+                                          else               AppU e1 (formaNormal e2)
 
 --
 -- Definiciones Generales en λ
@@ -150,7 +151,8 @@ lSnd   = LamU "p" $ AppU (VarU "p") lFalse
 -- Numerales de Church
 --
 churchSucc :: Lam_U
-churchSucc = LamU "n" $ LamU "s" $ LamU "z" $ AppU (VarU "s") $ AppU (AppU (VarU "n") (VarU "s")) (VarU "z")
+churchSucc = LamU "n" $ LamU "s" $ LamU "z" $
+               AppU (VarU "s") $ AppU (AppU (VarU "n") (VarU "s")) (VarU "z")
 churchN :: Natural -> Lam_U
 churchN 0 = LamU "s" $ LamU "z" $ VarU "z"
 churchN n = formaNormal $ AppU churchSucc (churchN (n-1))
@@ -335,11 +337,21 @@ casiScottImpar = LamU "f" $ LamU "n" $
 scottImpar :: Lam_U
 scottImpar = AppU yCombinator casiScottImpar
 
+
+
+
+
+
 {-----------------------}
---INFERENCIA DE TIPOS--
+-- INFERENCIA DE TIPOS --
 {-----------------------}
---Expresiones LamAB sin anotaciones de tipos.
-data LamAB = VNum Int
+
+--
+-- Expresiones LamAB sin anotaciones de tipos.
+--
+
+data LamAB =
+       VNum Int
      | VBool Bool
      | Var Nombre
      | Suma LamAB LamAB
@@ -350,8 +362,9 @@ data LamAB = VNum Int
      | App LamAB LamAB
      deriving Show
 
-
---Expresiones LamAB con anotaciones de tipos.
+--
+-- Expresiones LamAB con anotaciones de tipos.
+--
 data LamABT = VNumT Int
      | VBoolT Bool
      | VarT Nombre
@@ -363,37 +376,42 @@ data LamABT = VNumT Int
      | AppT LamABT LamABT
      deriving Show
 
+--
+-- Para representar un contexto de variables [(x1,T1),...,(xn,Tn)].
+--
 
---Para representar un contexto de variables [(x1,T1),...,(xn,Tn)].
 type Ctx = [(Nombre,Tipo)]
 
---Para representar juicios de tipado.
+--
+-- Para representar juicios de tipado.
+--
+
 data Juicio = Deriv (Ctx,LamABT,Tipo)
 
 instance Show Juicio where
   show (Deriv (ctx, e, t)) = show ctx++" ⊢ "++show e++" : "++show t
 
-
-
-
---Realiza la inferencia de tipos de una expresión LamABT
+--
+-- Algoritmo W
+--
+-- | Realiza la inferencia de tipos de una expresión LamABT
+--
+-- >>> algoritmoW $ Lam "x" $ Lam "y" $ Var "y"
+-- []|-LamT "x" X1 (LamT "y" X0 (VarT "y")):X1->(X0->X0)
+-- >>> algoritmoW $ App (App (Var "x") (Var "y")) (Var "z")
+-- [("x",X3->(X4->X0)),("y",X3),("z",X4)]|-AppT (AppT (VarT "x") (VarT "y")) (VarT "z"):X0
 algoritmoW :: LamAB->Juicio
-algoritmoW e = let (Deriv (ctx,e',t),_) = w e [] in Deriv (elimRep ctx,e',t) where
-                                                           elimRep [] = []
-                                                           elimRep (x:xs) = x:(filter (x/=) $ elimRep xs)
+algoritmoW e = Deriv (elimRep ctx, e', t)
+  where
+    (Deriv (ctx, e', t), _) = w e []
+    elimRep [] = []
+    elimRep (x:xs) = x : filter (x/=) (elimRep xs)
 
 
 --Realiza el algoritmo W en una expresión LamAB utilizando una lista de nombres que ya están ocupados.
 w :: LamAB -> [Nombre] -> (Juicio,[Nombre])
 w e vars = error "Te toca"
 
-
-{-PRUEBAS:-}
--- []|-LamT "x" X1 (LamT "y" X0 (VarT "y")):X1->(X0->X0)
-prueba1 = algoritmoW $ Lam "x" $ Lam "y" $ Var "y"
-
--- [("x",X3->(X4->X0)),("y",X3),("z",X4)]|-AppT (AppT (VarT "x") (VarT "y")) (VarT "z"):X0
-prueba2 = algoritmoW $ App (App (Var "x") (Var "y")) (Var "z")
 
 -- *** Exception: No se pudo unificar.
 prueba3 = algoritmoW $ App (Var "x") (Var "x")
