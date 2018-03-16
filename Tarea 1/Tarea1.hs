@@ -196,7 +196,7 @@ scottN n = LamU "x" $ LamU "y" $ AppU (VarU "y") (scottN (n-1))
 --
 --Codifica los incisos de la pregunta 1
 --
-f1 :: La] ⊢m_U
+f1 :: Lam_U
 f1 = LamU "n" $ LamU "m" $ LamU "s" $ LamU "z" $ AppU (AppU (AppU (VarU "m") (VarU "n")) (VarU "s")) (VarU "z")
 g1 :: Lam_U
 g1 = LamU "n" $ LamU "s" $ LamU "z" $ AppU (AppU (AppU (VarU "n") g1') (LamU "u" (VarU "z"))) (LamU "u" (VarU "u"))
