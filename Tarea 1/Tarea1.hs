@@ -6,6 +6,7 @@ Ayudante: Enrique Antonio Bernal Cedillo
 
 module Tarea1 where
 
+import Data.Maybe (fromMaybe)
 import Numeric.Natural (Natural)
 import Data.List (intersect)
 import Unificacion
@@ -195,7 +196,7 @@ scottN n = LamU "x" $ LamU "y" $ AppU (VarU "y") (scottN (n-1))
 --
 --Codifica los incisos de la pregunta 1
 --
-f1 :: Lam_U
+f1 :: La] ⊢m_U
 f1 = LamU "n" $ LamU "m" $ LamU "s" $ LamU "z" $ AppU (AppU (AppU (VarU "m") (VarU "n")) (VarU "s")) (VarU "z")
 g1 :: Lam_U
 g1 = LamU "n" $ LamU "s" $ LamU "z" $ AppU (AppU (AppU (VarU "n") g1') (LamU "u" (VarU "z"))) (LamU "u" (VarU "u"))
@@ -365,7 +366,8 @@ data LamAB =
 --
 -- Expresiones LamAB con anotaciones de tipos.
 --
-data LamABT = VNumT Int
+data LamABT =
+       VNumT Int
      | VBoolT Bool
      | VarT Nombre
      | SumaT LamABT LamABT
@@ -400,6 +402,22 @@ instance Show Juicio where
 -- []|-LamT "x" X1 (LamT "y" X0 (VarT "y")):X1->(X0->X0)
 -- >>> algoritmoW $ App (App (Var "x") (Var "y")) (Var "z")
 -- [("x",X3->(X4->X0)),("y",X3),("z",X4)]|-AppT (AppT (VarT "x") (VarT "y")) (VarT "z"):X0
+-- >>> algoritmoW $ App (Var "x") (Var "x")
+-- *** Exception: No se pudo unificar.
+-- >>> algoritmoW $ Lam "s" $ Lam "z" $ App (Var "s") (Var "z")
+-- []|-LamT "s" X2->X0 (LamT "z" X2 (AppT (VarT "s") (VarT "z"))):(X2->X0)->(X2->X0)
+-- >>> algoritmoW $ App (App (Var "x") (Var "z")) (App (Var "y") (Var "z"))
+-- [("x",X6->(X4->X0)),("z",X6),("y",X6->X4),("z",X6)]|-AppT (AppT (VarT "x") (VarT "z")) (AppT (VarT "y") (VarT "z")):X0
+-- >>> algoritmoW $ Lam "f" $ Lam "x" $ Lam "y" $ App (Var "f") (Suma (Var "x") (Var "y"))
+-- []|-LamT "f" Nat->X0 (LamT "x" Nat (LamT "y" Nat (AppT (VarT "f") (SumaT (VarT "x") (VarT "y"))))):(Nat->X0)->(Nat->Nat->X0)
+-- >>> algoritmoW $ App (Var "g") (App (Var "f") (Prod (VNum 3) (Var "z")))
+-- [("g",X2->X0),("f",Nat->X2),("z",Nat)]|-AppT (VarT "g") (AppT (VarT "f") (ProdT (VNumT 3) (VarT "z"))):X0
+-- >>> algoritmoW $ Ifte (Iszero $ Suma (VNum 2) (VNum 0)) (App (Var "f") (Var "y")) (VBool False)
+-- [("f",X2->Bool),("y",X2)]|-IfteT (IszeroT (SumaT (VNumT 2) (VNumT 0))) (AppT (VarT "f") (VarT "y")) (VBoolT False):Bool
+-- >>> algoritmoW $ Lam "x" $ Lam "y" $ Ifte (VBool True) (App (Var "f") (Var "x")) (Var "y")
+-- [("f",X2->X3)]|-LamT "x" X2 (LamT "y" X3 (IfteT (VBoolT True) (AppT (VarT "f") (VarT "x")) (VarT "y"))):X2->(X3->X3)
+-- >>> algoritmoW $ App (Suma (VNum 1) (Var "n")) (Var "w")
+-- *** Exception: No se pudo unificar.
 algoritmoW :: LamAB->Juicio
 algoritmoW e = Deriv (elimRep ctx, e', t)
   where
@@ -409,30 +427,25 @@ algoritmoW e = Deriv (elimRep ctx, e', t)
 
 
 --Realiza el algoritmo W en una expresión LamAB utilizando una lista de nombres que ya están ocupados.
-w :: LamAB -> [Nombre] -> (Juicio,[Nombre])
-w e vars = error "Te toca"
-
-
--- *** Exception: No se pudo unificar.
-prueba3 = algoritmoW $ App (Var "x") (Var "x")
-
--- []|-LamT "s" X2->X0 (LamT "z" X2 (AppT (VarT "s") (VarT "z"))):(X2->X0)->(X2->X0)
-prueba4 = algoritmoW $ Lam "s" $ Lam "z" $ App (Var "s") (Var "z")
-
--- [("x",X6->(X4->X0)),("z",X6),("y",X6->X4),("z",X6)]|-AppT (AppT (VarT "x") (VarT "z")) (AppT (VarT "y") (VarT "z")):X0
-prueba5 = algoritmoW $ App (App (Var "x") (Var "z")) (App (Var "y") (Var "z"))
-
--- []|-LamT "f" Nat->X0 (LamT "x" Nat (LamT "y" Nat (AppT (VarT "f") (SumaT (VarT "x") (VarT "y"))))):(Nat->X0)->(Nat->Nat->X0)
-prueba6 = algoritmoW $ Lam "f" $ Lam "x" $ Lam "y" $ App (Var "f") (Suma (Var "x") (Var "y")) 
-
--- [("g",X2->X0),("f",Nat->X2),("z",Nat)]|-AppT (VarT "g") (AppT (VarT "f") (ProdT (VNumT 3) (VarT "z"))):X0
-prueba7 = algoritmoW $ App (Var "g") (App (Var "f") (Prod (VNum 3) (Var "z")))
-
--- [("f",X2->Bool),("y",X2)]|-IfteT (IszeroT (SumaT (VNumT 2) (VNumT 0))) (AppT (VarT "f") (VarT "y")) (VBoolT False):Bool
-prueba8 = algoritmoW $ Ifte (Iszero $ Suma (VNum 2) (VNum 0)) (App (Var "f") (Var "y")) (VBool False)
-
--- [("f",X2->X3)]|-LamT "x" X2 (LamT "y" X3 (IfteT (VBoolT True) (AppT (VarT "f") (VarT "x")) (VarT "y"))):X2->(X3->X3)
-prueba9 = algoritmoW $ Lam "x" $ Lam "y" $ Ifte (VBool True) (App (Var "f") (Var "x")) (Var "y")
-
--- *** Exception: No se pudo unificar.
-prueba10 = algoritmoW $ App (Suma (VNum 1) (Var "n")) (Var "w")
+w :: LamAB -> [Nombre] -> (Juicio, [Nombre])
+w e vars = case e of
+             (VNum n)        -> (Deriv ([], VNumT n,  TNat),  vars)
+             (VBool b)       -> (Deriv ([], VBoolT b, TBool), vars)
+             (Var n)         -> (Deriv ([(n, X t)], VarT  n, X t), t:vars)
+               where
+                 t = head sigLib
+             (Suma e1 e2)    -> undefined
+             (Prod e1 e2)    -> undefined
+             (Ifte e1 e2 e3) -> undefined
+             (Iszero e1)     -> undefined
+             (Lam e1 e2)     -> (Deriv (ctx2', LamT e1 t1' e2', t1' :-> t2'), vars')
+               where
+                 (Deriv (ctx2', e2', t2'), vars2') = w e2 vars
+                 t1Bus = lookup e1 ctx2'
+                 (t1', vars') = case t1Bus of
+                                  Just t1Enc -> (t1Enc, vars2')
+                                  Nothing -> (X (head sigLib'), head sigLib':vars2')
+                 sigLib' = filter (`notElem` vars2') sigLib
+             (App e1 e2)     -> undefined
+  where
+    sigLib = filter (`notElem` vars) $ map (\n -> "X" ++ show n) [0..]
