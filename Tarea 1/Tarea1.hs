@@ -399,7 +399,7 @@ instance Show Juicio where
 -- | Realiza la inferencia de tipos de una expresión LamABT
 --
 -- >>> algoritmoW $ Lam "x" $ Lam "y" $ Var "y"
--- []|-LamT "x" X1 (LamT "y" X0 (VarT "y")):X1->(X0->X0)
+-- [] ⊢ LamT "x" X1 (LamT "y" X0 (VarT "y")) : (X1->(X0->X0))
 -- >>> algoritmoW $ App (App (Var "x") (Var "y")) (Var "z")
 -- [("x",X3->(X4->X0)),("y",X3),("z",X4)]|-AppT (AppT (VarT "x") (VarT "y")) (VarT "z"):X0
 -- >>> algoritmoW $ App (Var "x") (Var "x")
@@ -428,24 +428,44 @@ algoritmoW e = Deriv (elimRep ctx, e', t)
 
 --Realiza el algoritmo W en una expresión LamAB utilizando una lista de nombres que ya están ocupados.
 w :: LamAB -> [Nombre] -> (Juicio, [Nombre])
+w (Lam e1 e2) vars = (Deriv (ctx', LamT e1 t1' e2', t1' :-> t2'), vars')
+  where
+    (Deriv (ctx2', e2', t2'), vars2') = w e2 vars
+    t1Bus = lookup e1 ctx2'
+    t1'   = fromMaybe (X $ head $ sigLib vars2') t1Bus
+    (ctx', vars') = case t1Bus of
+                      Just _  -> (filter (\(n, _) -> n /= e1) ctx2', vars2')
+                      Nothing -> (ctx2', vars2')
+w (App e1 e2) vars = case t1' of
+                       TNat    -> error "Error de Tipado"
+                       TBool   -> error "Error de Tipado"
+                       X _     -> (Deriv (ctx', AppT e1' e2', t'), vars')
+                       _ :-> _ -> (Deriv (ctx', AppT e1' e2', t'), vars')
+  where
+    (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
+    (Deriv (ctx2', e2', t2'), vars2') = w e2 vars1'
+    -- TODO: Esta muy mal esta parte
+    (ctx', t') = case t1' of
+                   X n           -> (foldl compSust ctx1' $ ctx2':[(n, X n :-> t')]:unifica t2' (X n),
+                                     X $ head $ sigLib vars2')
+                   t1'e :-> t1's -> (foldl compSust ctx1' $ ctx2':unifica t2' t1'e,
+                                     t1's)
+                   _             -> error "Error de Tipado"
+    -- ENDTODO
+    vars' = vars2'
 w e vars = case e of
-             (VNum n)        -> (Deriv ([], VNumT n,  TNat),  vars)
-             (VBool b)       -> (Deriv ([], VBoolT b, TBool), vars)
-             (Var n)         -> (Deriv ([(n, X t)], VarT  n, X t), t:vars)
+             (VNum n)  -> (Deriv ([], VNumT n,  TNat),  vars)
+             (VBool b) -> (Deriv ([], VBoolT b, TBool), vars)
+             (Var n)   -> (Deriv ([(n, X t)], VarT  n, X t), t:vars)
                where
-                 t = head sigLib
+                 t = head $ sigLib vars
+             -- TODO: Indefinidos
              (Suma e1 e2)    -> undefined
              (Prod e1 e2)    -> undefined
              (Ifte e1 e2 e3) -> undefined
              (Iszero e1)     -> undefined
-             (Lam e1 e2)     -> (Deriv (ctx2', LamT e1 t1' e2', t1' :-> t2'), vars')
-               where
-                 (Deriv (ctx2', e2', t2'), vars2') = w e2 vars
-                 t1Bus = lookup e1 ctx2'
-                 (t1', vars') = case t1Bus of
-                                  Just t1Enc -> (t1Enc, vars2')
-                                  Nothing -> (X (head sigLib'), head sigLib':vars2')
-                 sigLib' = filter (`notElem` vars2') sigLib
-             (App e1 e2)     -> undefined
-  where
-    sigLib = filter (`notElem` vars) $ map (\n -> "X" ++ show n) [0..]
+             _               -> undefined
+             -- ENDTODO: Indefinidos
+
+sigLib :: [Nombre] -> [Nombre]
+sigLib vars = filter (`notElem` vars) $ map (\n -> "X" ++ show n) [0..]
