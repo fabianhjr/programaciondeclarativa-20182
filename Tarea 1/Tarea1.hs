@@ -6,8 +6,8 @@ Ayudante: Enrique Antonio Bernal Cedillo
 
 module Tarea1 where
 
-import Numeric.Natural(Natural)
-import Data.List(intersect)
+import Numeric.Natural (Natural)
+import Data.List (intersect)
 import Unificacion
 
 
@@ -71,7 +71,7 @@ sustituir b e s = case e of
                                     else LamU v $ sustituir b e1 s
                     (AppU e1 e2) -> AppU (sustituir b e1 s) (sustituir b e2 s)
 
--- | Alpha Equivalencia de Variables Ligadas
+-- | α-equivalencia de Variables Ligadas
 --
 alphaEquiv :: Lam_U -> Nombre -> Nombre -> Lam_U
 alphaEquiv e b s
@@ -83,7 +83,7 @@ alphaEquiv e b s
                                   else LamU v $ alphaEquiv e1 b s
                   (AppU e1 e2) -> AppU (alphaEquiv e1 b s) (alphaEquiv e2 b s)
 
--- | Busca la primer Alpha Equivalencia de añádir tildes sin colisionar con variables libres
+-- | Busca la primer α-equivalencia de añádir tildes sin colisionar con variables libres
 --
 alphaEquivAuto :: Lam_U -> Nombre -> Lam_U
 alphaEquivAuto e b = alphaEquiv e b remplazo
@@ -135,6 +135,10 @@ lFalse :: Lam_U
 lFalse = LamU "x" $ LamU "y" $ VarU "y"
 lNot   :: Lam_U
 lNot   = LamU "p" $ LamU "x" $ LamU "y" $ AppU (AppU (VarU "p") (VarU "y")) (VarU "x")
+
+lConst :: Lam_U
+lConst = LamU "c" $ LamU "x" $ VarU "c"
+
 lPair  :: Lam_U
 lPair  = LamU "x" $ LamU "y" $ LamU "p" $ AppU (AppU (VarU "p") (VarU "x")) (VarU "y")
 lFst   :: Lam_U
@@ -145,16 +149,43 @@ lSnd   = LamU "p" $ AppU (VarU "p") lFalse
 --
 -- Numerales de Church
 --
-lSucc :: Lam_U
-lSucc = LamU "n" $ LamU "s" $ LamU "z" $ AppU (VarU "s") $ AppU (AppU (VarU "n") (VarU "s")) (VarU "z")
+churchSucc :: Lam_U
+churchSucc = LamU "n" $ LamU "s" $ LamU "z" $ AppU (VarU "s") $ AppU (AppU (VarU "n") (VarU "s")) (VarU "z")
 churchN :: Natural -> Lam_U
 churchN 0 = LamU "s" $ LamU "z" $ VarU "z"
-churchN n = formaNormal $ AppU lSucc (churchN (n-1))
+churchN n = formaNormal $ AppU churchSucc (churchN (n-1))
+
+-- | Checa si un numeral de church es cero
+--
+-- >>> formaNormal (AppU churchEsCero (churchN 0))
+-- (λx.(λy.x))
+-- >>> formaNormal (AppU churchEsCero (churchN 9))
+-- (λx.(λy.y))
+churchEsCero :: Lam_U
+churchEsCero = LamU "n" $ AppU (AppU (VarU "n") (AppU lConst lFalse)) lTrue
+
+-- | Suma dos numerales de church
+--
+-- >>> formaNormal (AppU (AppU churchSum (churchN 2)) (churchN 3))
+-- (λs.(λz.(s (s (s (s (s z)))))))
+-- >>> formaNormal (AppU (AppU churchSum (churchN 5)) (churchN 10))
+-- (λs.(λz.(s (s (s (s (s (s (s (s (s (s (s (s (s (s (s z)))))))))))))))))
+churchSum :: Lam_U
+churchSum = LamU "n" $ LamU "m" $ LamU "s" $ LamU "z" $
+              AppU (AppU (VarU "n") (VarU "s")) (AppU (AppU (VarU "m") (VarU "s")) (VarU "z"))
+
+-- | Multiplica dos numerales de church
+--
+-- >>> formaNormal (AppU (AppU churchProd (churchN 2)) (churchN 4))
+-- (λs.(λz.(s (s (s (s (s (s (s (s z))))))))))
+-- >>> formaNormal (AppU (AppU churchProd (churchN 3)) (churchN 5))
+-- (λs.(λz.(s (s (s (s (s (s (s (s (s (s (s (s (s (s (s z)))))))))))))))))
+churchProd :: Lam_U
+churchProd = LamU "n" $ LamU "m" $ LamU "s" $ AppU (VarU "n") (AppU (VarU "m") (VarU "s"))
 
 --
 -- Numerales de Scott
 --
-
 scottN :: Natural -> Lam_U
 scottN 0 = LamU "x" $ LamU "y" (VarU "x")
 scottN n = LamU "x" $ LamU "y" $ AppU (VarU "y") (scottN (n-1))
@@ -169,7 +200,7 @@ g1 = LamU "n" $ LamU "s" $ LamU "z" $ AppU (AppU (AppU (VarU "n") g1') (LamU "u"
   where g1' = LamU "h1" $ LamU "h2" $ AppU (VarU "h2") (AppU (VarU "h1") (VarU "s"))
 h1 :: Lam_U
 h1 = LamU "n" $ AppU lFst (AppU (AppU (VarU "n") ss) zz) -- λn.fst (n ss zz)
-  where ss = LamU "p" $ AppU (AppU lPair (AppU lSnd (VarU "p"))) (AppU lSucc (AppU lSnd (VarU "p"))) -- λp.pair (snd p) (suc (snd p)),
+  where ss = LamU "p" $ AppU (AppU lPair (AppU lSnd (VarU "p"))) (AppU churchSucc (AppU lSnd (VarU "p"))) -- λp.pair (snd p) (suc (snd p)),
         zz = AppU (AppU lPair (churchN 0)) (churchN 0) -- pair 0 0
 
 --Cálculos
@@ -197,14 +228,20 @@ res3 = formaNormal (AppU g1 (churchN 0))
 res4 :: Lam_U
 res4 = formaNormal (AppU g1 (churchN 3))
 
--- h1 1 = λs.λz.z = 0
+-- |
+-- >>> res5
+-- (λs.(λz.z))
 res5 :: Lam_U
 res5 = formaNormal (AppU h1 (churchN 1))
--- h1 2 = λs.λz'.s z' = 1
+-- |
+-- >>> res6
+-- (λs.(λz.(s z)))
 res6 :: Lam_U
 res6 = formaNormal (AppU h1 (churchN 2))
 
---Codifica los incisos de la pregunta 2
+--
+-- Codifica los incisos de la pregunta 2
+--
 f2 :: Lam_U
 f2 = LamU "n" $ LamU "x" $ LamU "y" $ AppU (VarU "y") (VarU "n") -- λn.λx.λy.yn
 g2 :: Lam_U
@@ -213,35 +250,90 @@ h2 :: Lam_U
 h2 = LamU "n" $ AppU (AppU (VarU "n") lTrue) (LamU "x" lFalse) -- λn.n true (λx.false)
 
 -- Cálculos
--- f2 0 = λx.λy.y(λx.λy.x) = 1
+
+-- |
+-- >>> res7
+-- (λx.(λy.(y (λx.(λy.x)))))
 res7 :: Lam_U
 res7 = formaNormal (AppU f2 (scottN 0))
--- f2 3 = λx.λy.y(λx.λy.y(λx.λy.y(λx.λy.y(λx.λy.x)))) = 4
+-- |
+-- >>> res8
+-- (λx.(λy.(y (λx.(λy.(y (λx.(λy.(y (λx.(λy.(y (λx.(λy.x))))))))))))))
 res8 :: Lam_U
 res8 = formaNormal (AppU f2 (scottN 3))
 
--- g2 1 = λx.λy.x = 0
+-- |
+-- >>> res9
+-- (λx.(λy.x))
 res9 :: Lam_U
 res9 = formaNormal (AppU g2 (scottN 1))
--- g2 4 = λx.λy.y(λx.λy.y(λx.λy.y(λx.λy.x))) = 3
+-- |
+-- >>> res10
+-- (λx.(λy.(y (λx.(λy.(y (λx.(λy.(y (λx.(λy.x)))))))))))
 res10 :: Lam_U
 res10 = formaNormal (AppU g2 (scottN 4))
 
--- h2 0 = λx.λy.x = True
+-- |
+-- >>> res11
+-- (λx.(λy.x))
 res11 :: Lam_U
 res11 = formaNormal (AppU h2 (scottN 0))
--- h2 5 = λx.λy.y = False
+-- |
+-- >>> res12
+-- (λx.(λy.y))
 res12 :: Lam_U
 res12 = formaNormal (AppU h2 (scottN 5))
 
---Codifica los incisos de la pregunta 3
+--
+-- Codifica los incisos de la pregunta 3
+--
+-- | El combinador-y de punto fijo.
+--   Advertencia: Evitar buscar la forma normal sin hacer una aplicación completa.
 yCombinator :: Lam_U
 yCombinator = LamU "f" $ AppU (LamU "x" (AppU (VarU "f") (AppU (VarU "x") (VarU "x")))) (LamU "x" (AppU (VarU "f") (AppU (VarU "x") (VarU "x"))))
 
-casiImpar :: Lam_U
-casiImpar = LamU "f" $ LamU "n" $ AppU (AppU (AppU h2 (VarU "n")) lFalse) (AppU lNot (AppU (VarU "f") (AppU g2 (VarU "n"))))
-impar :: Lam_U
-impar = AppU yCombinator casiImpar
+-- | Determina el caso base de exponencias o reduce un caso que se le pase.
+--   Para uso con el combinador-Y, recibe una pareja de numerales de Church.
+casiChurchExponente :: Lam_U
+casiChurchExponente = LamU "f" $ LamU "nm" $
+                        AppU (AppU (AppU churchEsCero m)
+                          (churchN 1))
+                          (AppU (AppU churchProd n) (AppU (VarU "f") nm'))
+  where n = AppU lFst (VarU "nm")
+        m = AppU lSnd (VarU "nm")
+        nm' = AppU (AppU lPair n) $ AppU g1 m
+
+-- | Exponencia una pareja de numerales de Church
+--
+-- >>> formaNormal $ AppU churchExponente $ AppU (AppU lPair (churchN 1)) (churchN 5)
+-- (λs.(λz.(s z)))
+-- >>> formaNormal $ AppU churchExponente $ AppU (AppU lPair (churchN 3)) (churchN 2)
+-- (λs.(λz.(s (s (s (s (s (s (s (s (s z)))))))))))
+churchExponente :: Lam_U
+churchExponente = AppU yCombinator casiChurchExponente
+
+-- | Determina el caso base de scottImpar o reduce un caso que se le pase.
+--   Para uso con el combinador-Y, recibe numerales de Scott.
+casiScottImpar :: Lam_U
+casiScottImpar = LamU "f" $ LamU "n" $
+                   AppU (AppU (AppU scottEsCero (VarU "n"))
+                     lFalse)
+                     (AppU lNot (AppU (VarU "f") (AppU scottPred (VarU "n"))))
+  where scottEsCero = h2
+        scottPred = g2
+
+-- | Determina si un numeral de Scott es scottImpar
+--
+-- >>> formaNormal $ AppU scottImpar $ scottN 0
+-- (λx.(λy.y))
+-- >>> formaNormal $ AppU scottImpar $ scottN 3
+-- (λx.(λy.x))
+-- >>> formaNormal $ AppU scottImpar $ scottN 4
+-- (λx.(λy.y))
+-- >>> formaNormal $ AppU scottImpar $ scottN 7
+-- (λx.(λy.x))
+scottImpar :: Lam_U
+scottImpar = AppU yCombinator casiScottImpar
 
 {-----------------------}
 --INFERENCIA DE TIPOS--
