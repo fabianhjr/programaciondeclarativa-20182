@@ -33,11 +33,13 @@ simpSust = filter checar
 
 --Aplica una sustitución a un tipo.
 apSustT::Tipo->Sust->Tipo
-apSustT t sust = case t of
-                   TNat  -> TNat
-                   TBool -> TBool
-                   (X n)     -> fromMaybe (X n) $ lookup n sust
-                   t1 :-> t2 -> apSustT t1 sust :-> apSustT t2 sust
+apSustT t sust | null sust' = t
+               | otherwise  = case t of
+                                TNat  -> TNat
+                                TBool -> TBool
+                                (X n)     -> fromMaybe (X n) $ lookup n sust'
+                                t1 :-> t2 -> apSustT t1 sust' :-> apSustT t2 sust'
+  where sust' = simpSust sust
 
 apareceEn :: Nombre -> Tipo -> Bool
 n `apareceEn` s = case s of
