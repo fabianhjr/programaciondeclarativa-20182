@@ -1,5 +1,5 @@
 # Speed Options
-dist: precise
+dist: trusty
 sudo: false
 
 language: c
