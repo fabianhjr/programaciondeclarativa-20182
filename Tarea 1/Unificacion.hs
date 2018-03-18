@@ -61,7 +61,8 @@ compSust ((n, t):s1) s2 = case lookup n s2 of
                               where
                                 tn  = apSustT t (unifica t t')
                                 s2' = filter (\(n', _) -> n /= n') s2
-                            Nothing -> (n, apSustT t s2) : compSust s1 s2
+                            Nothing -> (n, apSustT t s2) : compSust s1 s2'
+                              where s2' = map (\(n', t') -> (n', apSustT t' s1)) s2
 
 
 
@@ -76,15 +77,14 @@ unifica TBool t = case t of
                     X n   -> [(n, TBool)]
                     _     -> error "No se pudo unificar."
 unifica (X n)       t | TBool == t      = [(n, TBool)]
-                      | TNat == t       = [(n, TNat)]
-                      | X n == t        = []
+                      | TNat  == t      = [(n, TNat)]
+                      | X n   == t      = []
                       | n `apareceEn` t = error "No se pudo unificar."
                       | otherwise       = [(n, t)]
 unifica (t1 :-> t2) t = case t of
-                          TNat  -> error "No se pudo unificar."
-                          TBool -> error "No se pudo unificar."
-                          (X t')        -> [(t', t1 :-> t2)]
+                          (X n)         -> [(n, t1 :-> t2)]
                           (t1' :-> t2') -> compSust (unifica t1 t1') (unifica t2 t2')
+                          _             -> error "No se pudo unificar."
 
 
 

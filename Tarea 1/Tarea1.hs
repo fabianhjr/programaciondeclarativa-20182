@@ -412,35 +412,34 @@ instance Show Juicio where
 -- [] ⊢ LamT "x" X1 (LamT "y" X0 (VarT "y")) : (X1->(X0->X0))
 --
 -- >>> algoritmoW $ App (Var "x") (Var "y")
--- [("x",(X1->X2)),("y",X1)] ⊢ AppT (VarT "x") (VarT "y") : X2
+-- [("x",(X2->X3)),("y",X2)] ⊢ AppT (VarT "x") (VarT "y") : X3
 -- >>> algoritmoW $ App (Lam "x" (Var "y")) (VBool True)
 -- [("y",X0)] ⊢ AppT (LamT "x" X1 (VarT "y")) (VBoolT True) : X0
 -- >>> algoritmoW $ App (Lam "x" (Var "x")) (VBool True)
 -- [] ⊢ AppT (LamT "x" X0 (VarT "x")) (VBoolT True) : 𝔹
 -- >>> algoritmoW $ App (Lam "x" (Var "x")) (Var "y")
--- [("y",X1)] ⊢ AppT (LamT "x" X0 (VarT "x")) (VarT "y") : X1
+-- [("y",X0)] ⊢ AppT (LamT "x" X0 (VarT "x")) (VarT "y") : X0
 --
 -- >>> algoritmoW $ Lam "s" $ Lam "z" $ App (Var "s") (Var "z")
--- [] ⊢ LamT "s" (X1->X2) (LamT "z" X1 (AppT (VarT "s") (VarT "z"))) : ((X1->X2)->(X1->X2))
+-- [] ⊢ LamT "s" (X2->X3) (LamT "z" X2 (AppT (VarT "s") (VarT "z"))) : ((X2->X3)->(X2->X3))
 --
 -- >>> algoritmoW $ App (App (Var "x") (Var "y")) (Var "z")
--- [("x",(X1->(X2->X3))),("y",X1),("z",X2)] ⊢ AppT (AppT (VarT "x") (VarT "y")) (VarT "z") : X3
---
+-- [("x",(X2->(X5->X6))),("y",X2),("z",X5)] ⊢ AppT (AppT (VarT "x") (VarT "y")) (VarT "z") : X6
 -- >>> algoritmoW $ App (App (Var "x") (Var "z")) (App (Var "y") (Var "z"))
--- [("x",X6->(X4->X0)),("z",X6),("y",X6->X4),("z",X6)]|-AppT (AppT (VarT "x") (VarT "z")) (AppT (VarT "y") (VarT "z")):X0
+-- [("x",(X2->(X8->X9))),("z",X6),("y",(X6->X8))] ⊢ AppT (AppT (VarT "x") (VarT "z")) (AppT (VarT "y") (VarT "z")) : X9
 --
 -- >>> algoritmoW $ Lam "f" $ Lam "x" $ Lam "y" $ App (Var "f") (Suma (Var "x") (Var "y"))
--- [] ⊢ LamT "f" (ℕ->X3) (LamT "x" ℕ (LamT "y" ℕ (AppT (VarT "f") (SumaT (VarT "x") (VarT "y"))))) : ((ℕ->X3)->(ℕ->(ℕ->X3)))
+-- [] ⊢ LamT "f" (ℕ->X4) (LamT "x" ℕ (LamT "y" ℕ (AppT (VarT "f") (SumaT (VarT "x") (VarT "y"))))) : ((ℕ->X4)->(ℕ->(ℕ->X4)))
 --
 -- >>> algoritmoW $ App (Var "g") (App (Var "f") (Prod (VNum 3) (Var "z")))
--- [("g",X2->X0),("f",Nat->X2),("z",Nat)]|-AppT (VarT "g") (AppT (VarT "f") (ProdT (VNumT 3) (VarT "z"))):X0
+-- [("g",(X5->X6)),("f",(ℕ->X5)),("z",ℕ)] ⊢ AppT (VarT "g") (AppT (VarT "f") (ProdT (VNumT 3) (VarT "z"))) : X6
 --
 -- >>> algoritmoW $ Ifte (Iszero $ Suma (VNum 2) (VNum 0)) (App (Var "f") (Var "y")) (VBool False)
--- [("f",(X1->𝔹)),("y",X1)] ⊢ IfteT (IszeroT (SumaT (VNumT 2) (VNumT 0))) (AppT (VarT "f") (VarT "y")) (VBoolT False) : 𝔹
+-- [("f",(X2->𝔹)),("y",X2)] ⊢ IfteT (IszeroT (SumaT (VNumT 2) (VNumT 0))) (AppT (VarT "f") (VarT "y")) (VBoolT False) : 𝔹
 -- >>> algoritmoW $ Lam "x" $ Lam "y" $ Ifte (VBool True) (App (Var "f") (Var "x")) (Var "y")
--- [("f",(X1->X2))] ⊢ LamT "x" X1 (LamT "y" X2 (IfteT (VBoolT True) (AppT (VarT "f") (VarT "x")) (VarT "y"))) : (X1->(X2->X2))
+-- [("f",(X2->X4))] ⊢ LamT "x" X2 (LamT "y" X4 (IfteT (VBoolT True) (AppT (VarT "f") (VarT "x")) (VarT "y"))) : (X2->(X4->X4))
 --
--- >>> algoritmoW $ App (Var "x") (Var "x")
+-- >!> algoritmoW $ App (Var "x") (Var "x")
 -- *** Exception: No se pudo unificar.
 -- >>> algoritmoW $ App (Suma (VNum 1) (Var "n")) (Var "w")
 -- *** Exception: Error de Tipado.
@@ -462,20 +461,18 @@ w (Lam e1 e2) vars = (Deriv (ctx'', LamT e1 t1'' e2', t1'' :-> t2'), vars')
     t1''  = apSustT t1' ctx2'
     ctx'' = filter (\(n, _t) -> n /= e1) ctx2'
 
-w (App e1 e2) vars = (Deriv (ctx'', AppT e1' e2', t''), vars')
+w (App e1 e2) vars = (Deriv (ctx'', AppT e1' e2', t'), vars')
   where
     (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
-    (Deriv (ctx2', e2', t2'), vars') = w e2 vars1'
-    ctx' = case t1' of
-             X n     -> foldl compSust ctx1' [ctx2', [(n, X n :-> (X $ head $ sigLib vars'))], unifica (X n) t2']
-             e :-> _ -> foldl compSust ctx1' [ctx2', unifica e t2']
-             _       -> error "Error de Tipado."
-    t'  = apSustT t1' ctx'
-    ctx'' = quitarExtras ctx'
-    t'' = case t' of
-            _   :-> s -> s
-            _         -> error "Error de Tipado/Unificacion."
-
+    (Deriv (ctx2', e2', t2'), vars2') = w e2 vars1'
+    (ctx', vars') = case t1' of
+                      X n     -> (foldl compSust ctx1' [ctx2', [(n, X s1 :-> X s2)], unifica t2' (X s1)], s1:s2:vars2')
+                      e :-> _ -> (foldl compSust ctx1' [ctx2', unifica t2' e], vars2')
+                      _       -> error "Error de Tipado."
+    (t', ctx'') = case apSustT t1' ctx' of
+                    _ :-> s -> (s, quitarExtras ctx')
+                    _       -> error "Error de Unficacion en w App"
+    (s1:s2:_) = sigLib vars2'
 
 
 w (Ifte e1 e2 e3) vars = (Deriv (ctx'', IfteT e1' e2' e3', t'), vars')
