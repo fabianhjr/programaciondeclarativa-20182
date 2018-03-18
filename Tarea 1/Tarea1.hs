@@ -8,6 +8,7 @@ module Tarea1 where
 
 import Data.Maybe (fromMaybe)
 import Numeric.Natural (Natural)
+import Data.Char (isNumber)
 import Data.List (intersect)
 import Unificacion
 
@@ -411,18 +412,19 @@ instance Show Juicio where
 -- [] ⊢ LamT "x" X1 (LamT "y" X0 (VarT "y")) : (X1->(X0->X0))
 --
 -- >>> algoritmoW $ App (Lam "x" (Var "y")) (VBool True)
--- [("y",X0),("X1",𝔹)] ⊢ AppT (LamT "x" X1 (VarT "y")) (VBoolT True) : X0
+-- [("y",X0)] ⊢ AppT (LamT "x" X1 (VarT "y")) (VBoolT True) : X0
 -- >>> algoritmoW $ App (Lam "x" (Var "x")) (VBool True)
--- [("X0",𝔹)] ⊢ AppT (LamT "x" X0 (VarT "x")) (VBoolT True) : 𝔹
+-- [] ⊢ AppT (LamT "x" X0 (VarT "x")) (VBoolT True) : 𝔹
 -- >>> algoritmoW $ App (Lam "x" (Var "x")) (Var "y")
--- [("y",X1),("X0",X1)] ⊢ AppT (LamT "x" X0 (VarT "x")) (VarT "y") : X1
+-- [("y",X1)] ⊢ AppT (LamT "x" X0 (VarT "x")) (VarT "y") : X1
 --
 -- >>> algoritmoW $ Lam "s" $ Lam "z" $ App (Var "s") (Var "z")
 -- [] ⊢ LamT "s" (X1->X2) (LamT "z" X1 (AppT (VarT "s") (VarT "z"))) : ((X1->X2)->(X1->X2))
 --
--- >!> algoritmoW $ App (App (Var "x") (Var "y")) (Var "z")
+-- >>> algoritmoW $ App (App (Var "x") (Var "y")) (Var "z")
 -- [("x",(X1->(X2->X3))),("y",X1),("z",X2)] ⊢ AppT (AppT (VarT "x") (VarT "y")) (VarT "z") : X3
--- >> algoritmoW $ App (App (Var "x") (Var "z")) (App (Var "y") (Var "z"))
+--
+-- >!> algoritmoW $ App (App (Var "x") (Var "z")) (App (Var "y") (Var "z"))
 -- [("x",X6->(X4->X0)),("z",X6),("y",X6->X4),("z",X6)]|-AppT (AppT (VarT "x") (VarT "z")) (AppT (VarT "y") (VarT "z")):X0
 --
 -- >>> algoritmoW $ Lam "f" $ Lam "x" $ Lam "y" $ App (Var "f") (Suma (Var "x") (Var "y"))
@@ -449,42 +451,44 @@ algoritmoW e = Deriv (elimRep ctx, e', t)
     elimRep (x:xs) = x : filter (x/=) (elimRep xs)
 
 w :: LamAB -> [Nombre] -> (Juicio, [Nombre])
-w (Lam e1 e2) vars = (Deriv (ctx', LamT e1 t1' e2', t1' :-> t2'), vars')
+w (Lam e1 e2) vars = (Deriv (ctx'', LamT e1 t1'' e2', t1'' :-> t2''), vars')
   where
     (Deriv (ctx2', e2', t2'), vars2') = w e2 vars
+    ctx'  = unificaSust $ filter (\(n, _) -> n /= e1) ctx2'
     t1'   = fromMaybe (X $ head $ sigLib vars2') $ lookup e1 ctx2'
-    ctx'  = filter (\(n, _) -> n /= e1) ctx2'
+    t1''  = apSustT t1' ctx'
+    t2''  = apSustT t2' ctx'
+    ctx'' = quitarRedundates ctx'
     vars' = vars2'
 
 
-w (App e1 e2) vars = case t1' of
-                       X _     -> (Deriv (ctx', AppT e1' e2', t''), vars')
-                       _ :-> _ -> (Deriv (ctx', AppT e1' e2', t''), vars')
-                       _       -> error "Error de Tipado."
+w (App e1 e2) vars = (Deriv (ctx'', AppT e1' e2', t''), vars')
   where
     (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
     (Deriv (ctx2', e2', t2'), vars2') = w e2 vars1'
-    (ctx', t') = case t1' of
-                   X n           -> (foldl compSust ctx1' $ ctx2' : [(n, X n :-> t')] : unifica (X n) t2',
-                                     X $ head $ sigLib vars2')
-                   t1'e :-> t1's -> (foldl compSust ctx1' $ ctx2' : unifica t1'e t2',
-                                     t1's)
-                   _             -> error "Error de Tipado."
+    ctx' = unificaSust $
+      case t1' of
+        X n     -> foldl compSust ctx1' $ ctx2' : [(n, X n :-> (X $ head $ sigLib vars2'))] : unifica (X n) t2'
+        e :-> _ -> foldl compSust ctx1' $ ctx2' : unifica e t2'
+        _       -> error "Error de Tipado."
+    t'  = apSustT t1' ctx'
+    (ctx'', t'') = case t' of
+                     _ :-> s -> (quitarRedundates ctx', s)
+                     _       -> error "Error de Tipado/Unificacion."
     vars' = vars2'
-    t'' = apSustT t' ctx'
 
 
 w (Suma e1 e2) vars = (Deriv (ctx', SumaT e1' e2', TNat), vars')
   where
     (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
     (Deriv (ctx2', e2', t2'), vars2') = w e2 vars1'
-    ctx'  = foldl compSust ctx1' $ ctx2' : (unifica t1' TNat ++ unifica t2' TNat)
+    ctx'  = unificaSust $ foldl compSust ctx1' $ ctx2' : (unifica t1' TNat ++ unifica t2' TNat)
     vars' = vars2'
 w (Prod e1 e2) vars = (Deriv (ctx', ProdT e1' e2', TNat), vars')
   where
     (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
     (Deriv (ctx2', e2', t2'), vars2') = w e2 vars1'
-    ctx'  = foldl compSust ctx1' $ ctx2' : (unifica t1' TNat ++ unifica t2' TNat)
+    ctx'  = unificaSust $ foldl compSust ctx1' $ ctx2' : (unifica t1' TNat ++ unifica t2' TNat)
     vars' = vars2'
 
 
@@ -493,13 +497,13 @@ w (Ifte e1 e2 e3) vars = (Deriv (ctx', IfteT e1' e2' e3', t'), vars')
     (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
     (Deriv (ctx2', e2', t2'), vars2') = w e2 vars1'
     (Deriv (ctx3', e3', t3'), vars3') = w e3 vars2'
-    ctx'  = foldl compSust ctx1' $ ctx2' : ctx3' : (unifica t1' TBool ++ unifica t2' t3')
+    ctx'  = unificaSust $ foldl compSust ctx1' $ ctx2' : ctx3' : (unifica t1' TBool ++ unifica t2' t3')
     t'    = apSustT t2' ctx'
     vars' = vars3'
 w (Iszero e1) vars = (Deriv (ctx', IszeroT e1', TBool), vars')
   where
     (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
-    ctx'  = foldl compSust ctx1' $ unifica t1' TNat
+    ctx'  = unificaSust $ foldl compSust ctx1' $ unifica t1' TNat
     vars' = vars1'
 
 
@@ -511,5 +515,10 @@ w e vars = case e of
                  t = head $ sigLib vars
              _         -> undefined
 
+
+
 sigLib :: [Nombre] -> [Nombre]
 sigLib vars = filter (`notElem` vars) $ map (\n -> "X" ++ show n) [0..]
+
+quitarRedundates :: Ctx -> Ctx
+quitarRedundates = filter (\(n,_) -> not $ (head n == 'X') && all isNumber (tail n))
