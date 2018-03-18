@@ -57,9 +57,10 @@ n `seSustituyeEn` s = case lookup n s of
 compSust::Sust->Sust->Sust
 compSust [] s2          = s2
 compSust ((n, t):s1) s2 = case lookup n s2 of
-                            Just t' -> compSust ((n, tn):s1) s2'
+                            Just t' -> compSust ((n, tn):s1 ++ td) s2'
                               where
-                                tn  = apSustT t (unifica t t')
+                                td  = unifica t t'
+                                tn  = apSustT t td
                                 s2' = filter (\(n', _) -> n /= n') s2
                             Nothing -> (n, apSustT t s2) : compSust s1 s2'
                               where s2' = map (\(n', t') -> (n', apSustT t' s1)) s2
@@ -82,7 +83,9 @@ unifica (X n)       t | TBool == t      = [(n, TBool)]
                       | n `apareceEn` t = error "No se pudo unificar."
                       | otherwise       = [(n, t)]
 unifica (t1 :-> t2) t = case t of
-                          (X n)         -> [(n, t1 :-> t2)]
+                          (X n)         -> if n `apareceEn` (t1 :-> t2)
+                                           then error "No se pudo unificar."
+                                           else [(n, t1 :-> t2)]
                           (t1' :-> t2') -> compSust (unifica t1 t1') (unifica t2 t2')
                           _             -> error "No se pudo unificar."
 

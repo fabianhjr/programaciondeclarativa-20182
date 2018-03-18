@@ -439,8 +439,9 @@ instance Show Juicio where
 -- >>> algoritmoW $ Lam "x" $ Lam "y" $ Ifte (VBool True) (App (Var "f") (Var "x")) (Var "y")
 -- [("f",(X2->X4))] ⊢ LamT "x" X2 (LamT "y" X4 (IfteT (VBoolT True) (AppT (VarT "f") (VarT "x")) (VarT "y"))) : (X2->(X4->X4))
 --
--- >!> algoritmoW $ App (Var "x") (Var "x")
--- *** Exception: No se pudo unificar.
+-- >>> algoritmoW $ App (Var "x") (Var "x")
+-- *** Exception: Error de Tipado
+-- ...
 -- >>> algoritmoW $ App (Suma (VNum 1) (Var "n")) (Var "w")
 -- *** Exception: Error de Tipado.
 -- ...
@@ -466,9 +467,12 @@ w (App e1 e2) vars = (Deriv (ctx', AppT e1' e2', t'), vars')
   where
     (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
     (Deriv (ctx2', e2', t2'), vars2') = w e2 vars1'
-    (ctx', vars') = case t1' of
-                      X n     -> (foldl compSust ctx1' [ctx2', [(n, X s1 :-> X s2)], unifica t2' (X s1)], s1:s2:vars2')
-                      e :-> _ -> (foldl compSust ctx1' [ctx2', unifica t2' e], vars2')
+    ctx = compSust ctx1' ctx2'
+    (ctx', vars') = case apSustT t1' ctx of
+                      X n -> if comparteVars (X n) (apSustT t2' ctx)
+                             then error "Error de Tipado"
+                             else (foldl compSust ctx [[(n, X s1 :-> X s2)], unifica (apSustT t2' ctx) (X s1)], s1:s2:vars2')
+                      e :-> _ -> (compSust ctx (unifica t2' e), vars2')
                       _       -> error "Error de Tipado."
     t' = case apSustT t1' ctx' of
            _ :-> s -> s
@@ -513,3 +517,9 @@ w e vars = case e of
 sigLib :: [Nombre] -> [Nombre]
 sigLib vars = filter (`notElem` vars) $ map (\n -> "X" ++ show n) [0..]
 
+comparteVars :: Tipo -> Tipo -> Bool
+comparteVars t1 t2 = case t1 of
+                       TNat  -> False
+                       TBool -> False
+                       X n   -> n `apareceEn` t2
+                       t1' :-> t2' -> t1' `comparteVars` t2 || t2' `comparteVars` t2
