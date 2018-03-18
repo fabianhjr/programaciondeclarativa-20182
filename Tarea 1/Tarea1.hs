@@ -213,35 +213,35 @@ h1 = LamU "n" $ AppU lFst (AppU (AppU (VarU "n") ss) zz) -- λn.fst (n ss zz)
 -- >>> res1
 -- (λs.(λz.(s z)))
 res1 :: Lam_U
-res1 = formaNormal (AppU (AppU f1 (churchN 5)) (churchN 0))
+res1 = formaNormal $ AppU (AppU f1 (churchN 5)) (churchN 0)
 
 -- |
 -- >>> res2
 -- (λs.(λz.(s (s (s (s (s (s (s (s z))))))))))
 res2 :: Lam_U
-res2 = formaNormal (AppU (AppU f1 (churchN 2)) (churchN 3))
+res2 = formaNormal $ AppU (AppU f1 (churchN 2)) (churchN 3)
 
 -- |
 -- >>> res3
 -- (λs.(λz.z))
 res3 :: Lam_U
-res3 = formaNormal (AppU g1 (churchN 0))
+res3 = formaNormal $ AppU g1 (churchN 0)
 -- |
 -- >>> res4
 -- (λs.(λz.(s (s z))))
 res4 :: Lam_U
-res4 = formaNormal (AppU g1 (churchN 3))
+res4 = formaNormal $ AppU g1 (churchN 3)
 
 -- |
 -- >>> res5
 -- (λs.(λz.z))
 res5 :: Lam_U
-res5 = formaNormal (AppU h1 (churchN 1))
+res5 = formaNormal $ AppU h1 (churchN 1)
 -- |
 -- >>> res6
 -- (λs.(λz.(s z)))
 res6 :: Lam_U
-res6 = formaNormal (AppU h1 (churchN 2))
+res6 = formaNormal $ AppU h1 (churchN 2)
 
 --
 -- Codifica los incisos de la pregunta 2
@@ -259,34 +259,34 @@ h2 = LamU "n" $ AppU (AppU (VarU "n") lTrue) (LamU "x" lFalse) -- λn.n true (λ
 -- >>> res7
 -- (λx.(λy.(y (λx.(λy.x)))))
 res7 :: Lam_U
-res7 = formaNormal (AppU f2 (scottN 0))
+res7 = formaNormal $ AppU f2 (scottN 0)
 -- |
 -- >>> res8
 -- (λx.(λy.(y (λx.(λy.(y (λx.(λy.(y (λx.(λy.(y (λx.(λy.x))))))))))))))
 res8 :: Lam_U
-res8 = formaNormal (AppU f2 (scottN 3))
+res8 = formaNormal $ AppU f2 (scottN 3)
 
 -- |
 -- >>> res9
 -- (λx.(λy.x))
 res9 :: Lam_U
-res9 = formaNormal (AppU g2 (scottN 1))
+res9 = formaNormal $ AppU g2 (scottN 1)
 -- |
 -- >>> res10
 -- (λx.(λy.(y (λx.(λy.(y (λx.(λy.(y (λx.(λy.x)))))))))))
 res10 :: Lam_U
-res10 = formaNormal (AppU g2 (scottN 4))
+res10 = formaNormal $ AppU g2 (scottN 4)
 
 -- |
 -- >>> res11
 -- (λx.(λy.x))
 res11 :: Lam_U
-res11 = formaNormal (AppU h2 (scottN 0))
+res11 = formaNormal $ AppU h2 (scottN 0)
 -- |
 -- >>> res12
 -- (λx.(λy.y))
 res12 :: Lam_U
-res12 = formaNormal (AppU h2 (scottN 5))
+res12 = formaNormal $ AppU h2 (scottN 5)
 
 --
 -- Codifica los incisos de la pregunta 3
@@ -382,13 +382,11 @@ data LamABT =
 --
 -- Para representar un contexto de variables [(x1,T1),...,(xn,Tn)].
 --
-
 type Ctx = [(Nombre,Tipo)]
 
 --
 -- Para representar juicios de tipado.
 --
-
 newtype Juicio = Deriv (Ctx,LamABT,Tipo)
 
 instance Show Juicio where
