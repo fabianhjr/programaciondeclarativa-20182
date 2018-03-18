@@ -477,23 +477,6 @@ w (App e1 e2) vars = (Deriv (ctx'', AppT e1' e2', t''), vars')
                      _       -> error "Error de Tipado/Unificacion."
     vars' = vars2'
 
-
-w (Suma e1 e2) vars = (Deriv (ctx', SumaT e1' e2', TNat), vars')
-  where
-    (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
-    (Deriv (ctx2', e2', t2'), vars2') = w e2 vars1'
-    ctx'  = quitarRedundates $ unificaSust $
-      foldl compSust ctx1' $ ctx2' : (unifica t1' TNat ++ unifica t2' TNat)
-    vars' = vars2'
-w (Prod e1 e2) vars = (Deriv (ctx', ProdT e1' e2', TNat), vars')
-  where
-    (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
-    (Deriv (ctx2', e2', t2'), vars2') = w e2 vars1'
-    ctx'  = quitarRedundates $ unificaSust $
-      foldl compSust ctx1' $ ctx2' : (unifica t1' TNat ++ unifica t2' TNat)
-    vars' = vars2'
-
-
 w (Ifte e1 e2 e3) vars = (Deriv (ctx'', IfteT e1' e2' e3', t'), vars')
   where
     (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
@@ -513,13 +496,23 @@ w (Iszero e1) vars = (Deriv (ctx', IszeroT e1', TBool), vars')
 
 
 w e vars = case e of
-             (VNum n)  -> (Deriv ([], VNumT n,  TNat),  vars)
-             (VBool b) -> (Deriv ([], VBoolT b, TBool), vars)
-             (Var n)   -> (Deriv ([(n, X t)], VarT  n, X t), t:vars)
+             (VNum n)     -> (Deriv ([], VNumT n,  TNat),  vars)
+             (VBool b)    -> (Deriv ([], VBoolT b, TBool), vars)
+             (Var n)      -> (Deriv ([(n, X t)], VarT  n, X t), t:vars)
+             (Suma e1 e2) -> (Deriv (ctx', SumaT e1' e2', TNat), vars')
                where
-                 t = head $ sigLib vars
+                 (ctx', e1', e2', vars') = wParaSP e1 e2
+             (Prod e1 e2) -> (Deriv (ctx', ProdT e1' e2', TNat), vars')
+               where
+                 (ctx', e1', e2', vars') = wParaSP e1 e2
              _         -> undefined
-
+ where
+   t = head $ sigLib vars
+   wParaSP e1 e2 = (quitarRedundates $ unificaSust $
+                          foldl compSust ctx1' $ ctx2' : (unifica t1' TNat ++ unifica t2' TNat),
+                          e1', e2', vars2')
+    where (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
+          (Deriv (ctx2', e2', t2'), vars2') = w e2 vars1'
 
 
 sigLib :: [Nombre] -> [Nombre]
