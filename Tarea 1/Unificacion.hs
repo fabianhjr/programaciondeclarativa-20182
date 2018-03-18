@@ -49,44 +49,47 @@ n `apareceEn` s = case s of
                         t1 :-> t2 -> n `apareceEn` t1 || n `apareceEn` t2
 
 seSustituyeEn :: Nombre -> Sust -> Bool
-_ `seSustituyeEn` []           = False
-n `seSustituyeEn` ((n', _):ss) =  n == n' || n `seSustituyeEn` ss
-
-unificaSust :: Sust -> Sust
-unificaSust [] = []
-unificaSust ((n,t):xs) | n `seSustituyeEn` xs = foldl compSust [(n,t)] $ unificaSust xs : unificacionT
-                       | otherwise            = (n,t) : unificaSust xs
-  where unificacionT = unifica t $ snd . head $ filter (\(n',_) -> n == n') xs
+n `seSustituyeEn` s = case lookup n s of
+                        Just _  -> True
+                        Nothing -> False
 
 --Realiza la composición de dos sustituciones.
 compSust::Sust->Sust->Sust
-compSust s1 s2 = unificaSust $ s1' ++ s2'
-  where
-    s1' = map (\(n, t) -> (n, apSustT t s2)) s1
-    s2' = filter (\(n, _) -> not $ n `seSustituyeEn` s1) s2
+compSust [] s2          = s2
+compSust ((n, t):s1) s2 = case lookup n s2 of
+                            Just t' -> compSust ((n, tn):s1) s2'
+                              where
+                                tn  = apSustT t (unifica t t')
+                                s2' = filter (\(n', _) -> n /= n') s2
+                            Nothing -> (n, apSustT t s2) : compSust s1 s2
 
 
 
 --Unifica dos tipos.
-unifica::Tipo->Tipo->[Sust]
+unifica::Tipo->Tipo->Sust
 unifica TNat  t = case t of
                     TNat -> []
-                    X n  -> [[(n, TNat)]]
+                    X n  -> [(n, TNat)]
                     _    -> error "No se pudo unificar."
 unifica TBool t = case t of
                     TBool -> []
-                    X n   -> [[(n, TBool)]]
+                    X n   -> [(n, TBool)]
                     _     -> error "No se pudo unificar."
-unifica (X n)       t | X n == t        = []
+unifica (X n)       t | TBool == t      = [(n, TBool)]
+                      | TNat == t       = [(n, TNat)]
+                      | X n == t        = []
                       | n `apareceEn` t = error "No se pudo unificar."
-                      | otherwise       = [[(n, t)]]
+                      | otherwise       = [(n, t)]
 unifica (t1 :-> t2) t = case t of
                           TNat  -> error "No se pudo unificar."
                           TBool -> error "No se pudo unificar."
-                          (X t')        -> [[(t', t1 :-> t2)]]
-                          (t1' :-> t2') -> (:[]) $ foldl compSust [] $ unifica t1 t1' ++ unifica t2 t2'
+                          (X t')        -> [(t', t1 :-> t2)]
+                          (t1' :-> t2') -> compSust (unifica t1 t1') (unifica t2 t2')
+
+
 
 --Unifica una lista de tipos.
 unificaConj::[(Tipo,Tipo)]->[Sust]
 unificaConj [] = [[]]
-unificaConj ((t1,t2):ts) = [compSust s1 s2 | s1 <- unifica t1 t2, s2 <- unificaConj [(apSustT (fst t) s1,apSustT (snd t) s1) | t <- ts]]
+unificaConj ((t1,t2):ts) = [ compSust s1 s2 | s1 <- [unifica t1 t2],
+                                              s2 <- unificaConj [(apSustT (fst t) s1, apSustT (snd t) s1) | t <- ts]]
