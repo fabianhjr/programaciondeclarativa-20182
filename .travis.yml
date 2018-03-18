@@ -1,0 +1,34 @@
+# Speed Options
+dist: precise
+sudo: false
+
+language: c
+
+env:
+  - PATH="$PATH:$HOME/.bin"
+
+cache:
+  directories:
+    - $HOME/.bin
+    - $HOME/.ghc
+    - $HOME/.cabal
+    - $HOME/.stack
+
+before_install:
+  - unset CC
+
+install:
+  - curl -sSL https://get.haskellstack.org/ > $HOME/.stack/setup_stack.sh
+  - sh $HOME/.stack/setup_stack.sh -d $HOME/.bin
+  - stack setup
+  - stack install hlint
+  - stack install doctest
+
+script:
+  - hlint */*.hs
+  - doctest */*.hs
+
+branches:
+  only:
+    - master
+
