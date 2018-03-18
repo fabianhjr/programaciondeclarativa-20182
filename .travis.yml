@@ -1,8 +1,8 @@
 # Speed Options
 dist: trusty
-sudo: true
+sudo: false
 
-language: c
+language: generic
 
 env:
   - PATH="$PATH:$HOME/.bin"
@@ -14,15 +14,15 @@ cache:
     - $HOME/.cabal
     - $HOME/.stack
 
+addons:
+  apt:
+    packages:
+      - libgmp-dev
+
 before_install:
-  - if hash stack 2>/dev/null; then
-    else
-        curl -sSL https://get.haskellstack.org/ > $HOME/.stack/setup_stack.sh
-        sh $HOME/.stack/setup_stack.sh -d $HOME/.bin
-    fi
+  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.bin '*/stack'
 
 install:
-  
   - stack setup
   - stack install hlint
   - stack install doctest
