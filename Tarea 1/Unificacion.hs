@@ -77,7 +77,7 @@ unifica TBool t = case t of
                     TBool -> []
                     X n   -> [[(n, TBool)]]
                     _     -> error "No se pudo unificar."
-unifica (X n)       t | (X n) == t      = []
+unifica (X n)       t | X n == t        = []
                       | n `apareceEn` t = error "No se pudo unificar."
                       | otherwise       = [[(n, t)]]
 unifica (t1 :-> t2) t = case t of

@@ -389,7 +389,7 @@ type Ctx = [(Nombre,Tipo)]
 -- Para representar juicios de tipado.
 --
 
-data Juicio = Deriv (Ctx,LamABT,Tipo)
+newtype Juicio = Deriv (Ctx,LamABT,Tipo)
 
 instance Show Juicio where
   show (Deriv (ctx, e, t)) = show ctx++" ⊢ "++show e++" : "++show t
