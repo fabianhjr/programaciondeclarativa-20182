@@ -15,11 +15,14 @@ cache:
     - $HOME/.stack
 
 before_install:
-  - unset CC
+  - if hash stack 2>/dev/null; then
+    else
+        curl -sSL https://get.haskellstack.org/ > $HOME/.stack/setup_stack.sh
+        sh $HOME/.stack/setup_stack.sh -d $HOME/.bin
+    fi
 
 install:
-  - curl -sSL https://get.haskellstack.org/ > $HOME/.stack/setup_stack.sh
-  - sh $HOME/.stack/setup_stack.sh -d $HOME/.bin
+  
   - stack setup
   - stack install hlint
   - stack install doctest
