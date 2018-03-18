@@ -201,3 +201,23 @@ Las funciones son:
  - $h_2$ es \underline{noCero}
 
 # Combinador-Y
+
+\underline{combinadorY} $:= (\lambda f.((\lambda x.(f \ (x \ x))) \ (\lambda x.(f \ (x \ x)))))$
+
+## Exponente de numerales de Church
+
+\underline{casiChurchExponente} $:= \lambda f.(\lambda \underline{nm}.(((\underline{churchEsCero} \ m) \ (\underline{churchN} \ 1)) \ ((\underline{churchProd} \ n) \ (f \ \underline{nm'}))))$
+
+donde:
+
+ - $n := \underline{fst} \ nm$
+ - $m := \underline{snd} \ nm$
+ - $\underline{nm'} := (\underline{pair} \ n) \ (\underline{pred} \ m)$
+
+\underline{churchExponente} $:= \underline{combinadorY} \ \underline{casiChurchExponente}$
+
+## Impar de numerales de Scott
+
+\underline{casiScottImpar} $:= \lambda f.(\lambda n.(((\underline{scottEsCero} \ n) \ \underline{false}) \ (\underline{not} \ (f \ (\underline{scottPred} \ n))))$
+
+\underline{scottImpar} $:= \underline{combinadorY} \ \underline{casiScottImpar}$
