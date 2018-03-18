@@ -423,13 +423,13 @@ instance Show Juicio where
 -- >>> algoritmoW $ Lam "s" $ Lam "z" $ App (Var "s") (Var "z")
 -- [] ⊢ LamT "s" (X1->X2) (LamT "z" X1 (AppT (VarT "s") (VarT "z"))) : ((X1->X2)->(X1->X2))
 --
--- >!> algoritmoW $ App (App (Var "x") (Var "y")) (Var "z")
+-- >>> algoritmoW $ App (App (Var "x") (Var "y")) (Var "z")
 -- [("x",(X1->(X2->X3))),("y",X1),("z",X2)] ⊢ AppT (AppT (VarT "x") (VarT "y")) (VarT "z") : X3
 --
--- >!> algoritmoW $ App (App (Var "x") (Var "z")) (App (Var "y") (Var "z"))
+-- >>> algoritmoW $ App (App (Var "x") (Var "z")) (App (Var "y") (Var "z"))
 -- [("x",X6->(X4->X0)),("z",X6),("y",X6->X4),("z",X6)]|-AppT (AppT (VarT "x") (VarT "z")) (AppT (VarT "y") (VarT "z")):X0
 --
--- >!> algoritmoW $ Lam "f" $ Lam "x" $ Lam "y" $ App (Var "f") (Suma (Var "x") (Var "y"))
+-- >>> algoritmoW $ Lam "f" $ Lam "x" $ Lam "y" $ App (Var "f") (Suma (Var "x") (Var "y"))
 -- [] ⊢ LamT "f" (ℕ->X3) (LamT "x" ℕ (LamT "y" ℕ (AppT (VarT "f") (SumaT (VarT "x") (VarT "y"))))) : ((ℕ->X3)->(ℕ->(ℕ->X3)))
 --
 -- >>> algoritmoW $ App (Var "g") (App (Var "f") (Prod (VNum 3) (Var "z")))
