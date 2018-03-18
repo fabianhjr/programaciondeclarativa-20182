@@ -445,11 +445,12 @@ instance Show Juicio where
 -- *** Exception: Error de Tipado.
 -- ...
 algoritmoW :: LamAB->Juicio
-algoritmoW e = Deriv (elimRep ctx, e', t)
+algoritmoW e = Deriv (quitarExtras $ elimRep ctx, e', t)
   where
     (Deriv (ctx, e', t), _) = w e []
     elimRep [] = []
     elimRep (x:xs) = x : filter (x/=) (elimRep xs)
+    quitarExtras = filter (\(n, _) -> head n /= 'X' && all isNumber (tail n))
 
 
 
@@ -461,7 +462,7 @@ w (Lam e1 e2) vars = (Deriv (ctx'', LamT e1 t1'' e2', t1'' :-> t2'), vars')
     t1''  = apSustT t1' ctx2'
     ctx'' = filter (\(n, _t) -> n /= e1) ctx2'
 
-w (App e1 e2) vars = (Deriv (ctx'', AppT e1' e2', t'), vars')
+w (App e1 e2) vars = (Deriv (ctx', AppT e1' e2', t'), vars')
   where
     (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
     (Deriv (ctx2', e2', t2'), vars2') = w e2 vars1'
@@ -469,20 +470,20 @@ w (App e1 e2) vars = (Deriv (ctx'', AppT e1' e2', t'), vars')
                       X n     -> (foldl compSust ctx1' [ctx2', [(n, X s1 :-> X s2)], unifica t2' (X s1)], s1:s2:vars2')
                       e :-> _ -> (foldl compSust ctx1' [ctx2', unifica t2' e], vars2')
                       _       -> error "Error de Tipado."
-    (t', ctx'') = case apSustT t1' ctx' of
-                    _ :-> s -> (s, quitarExtras ctx')
-                    _       -> error "Error de Unficacion en w App"
+    t' = case apSustT t1' ctx' of
+           _ :-> s -> s
+           _       -> error "Error de Unficacion en w App"
     (s1:s2:_) = sigLib vars2'
 
 
-w (Ifte e1 e2 e3) vars = (Deriv (ctx'', IfteT e1' e2' e3', t'), vars')
+
+w (Ifte e1 e2 e3) vars = (Deriv (ctx', IfteT e1' e2' e3', t'), vars')
   where
     (Deriv (ctx1', e1', t1'), vars1') = w e1 vars
     (Deriv (ctx2', e2', t2'), vars2') = w e2 vars1'
     (Deriv (ctx3', e3', t3'), vars') = w e3 vars2'
     ctx'  = foldl compSust ctx1' [ctx2', ctx3', unifica t1' TBool, unifica t2' t3']
     t'    = apSustT t2' ctx'
-    ctx'' = quitarExtras ctx'
 
 
 
@@ -512,5 +513,3 @@ w e vars = case e of
 sigLib :: [Nombre] -> [Nombre]
 sigLib vars = filter (`notElem` vars) $ map (\n -> "X" ++ show n) [0..]
 
-quitarExtras :: Sust -> Sust
-quitarExtras = filter (\(n, _) -> head n /= 'X' && all isNumber (tail n))
