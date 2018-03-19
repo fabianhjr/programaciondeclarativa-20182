@@ -18,7 +18,6 @@ description: Please see the README on Github at <https://github.com/fabianhjr/pr
 
 dependencies:
 - base       >= 4.7 && < 5
-- derive     >= 2.6 && < 3
 - QuickCheck 
 
 library:

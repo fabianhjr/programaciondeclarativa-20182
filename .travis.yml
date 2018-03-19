@@ -29,8 +29,8 @@ install:
   - stack install doctest
 
 script:
-  - hlint   src/
-  - doctest src/
+  - hlint src/
+  - stack exec doctest src/
 
 branches:
   only:
