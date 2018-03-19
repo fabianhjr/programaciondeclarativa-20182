@@ -5,11 +5,11 @@ sudo: false
 language: generic
 
 env:
-  - PATH="$PATH:$HOME/.bin"
+  - PATH="$PATH:$HOME/.local/bin"
 
 cache:
   directories:
-    - $HOME/.bin
+    - $HOME/.local/bin
     - $HOME/.ghc
     - $HOME/.cabal
     - $HOME/.stack
@@ -20,18 +20,18 @@ addons:
       - libgmp-dev
 
 before_install:
-  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.bin '*/stack'
+  - mkdir -p ~/.local/bin
+  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  - travis_retry curl -L https://raw.github.com/ndmitchell/hlint/master/misc/travis.sh | sh -s .
 
 install:
   - stack setup
-  - stack install hlint
   - stack install doctest
 
 script:
-  - hlint */*.hs
-  - doctest */*.hs
+  - hlint   src/
+  - doctest src/
 
 branches:
   only:
     - master
-

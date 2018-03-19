@@ -1,0 +1,47 @@
+name:                Programación-Declarativa
+version:             0.1.0.0
+github:              "fabianhjr/programaciondeclarativa-20182"
+author:              "Fabián Heredia Montiel"
+
+# extra-source-files:
+#  - README.md
+#  - ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description: Please see the README on Github at <https://github.com/fabianhjr/programaciondeclarativa-20182#readme>
+
+dependencies:
+- base       >= 4.7 && < 5
+- derive     >= 2.6 && < 3
+- QuickCheck 
+
+library:
+  source-dirs: src/
+
+# executables:
+#   Programación-Declarativa-exe:
+#     main:                Main.hs
+#     source-dirs:         app
+#     ghc-options:
+#     - -threaded
+#     - -rtsopts
+#     - -with-rtsopts=-N
+#     dependencies:
+#     - Programación-Declarativa
+
+# tests:
+#   Programación-Declarativa-test:
+#     main:                Spec.hs
+#     source-dirs:         test
+#     ghc-options:
+#     - -threaded
+#     - -rtsopts
+#     - -with-rtsopts=-N
+#     dependencies:
+#     - Programación-Declarativa
