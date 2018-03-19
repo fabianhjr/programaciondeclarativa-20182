@@ -424,7 +424,7 @@ instance Show Juicio where
 -- >>> algoritmoW $ App (App (Var "x") (Var "y")) (Var "z")
 -- [("x",(X2->(X5->X6))),("y",X2),("z",X5)] ⊢ AppT (AppT (VarT "x") (VarT "y")) (VarT "z") : X6
 -- >>> algoritmoW $ App (App (Var "x") (Var "z")) (App (Var "y") (Var "z"))
--- [("x",(X2->(X8->X9))),("z",X6),("y",(X6->X8))] ⊢ AppT (AppT (VarT "x") (VarT "z")) (AppT (VarT "y") (VarT "z")) : X9
+-- [("x",(X6->(X8->X9))),("z",X6),("y",(X6->X8))] ⊢ AppT (AppT (VarT "x") (VarT "z")) (AppT (VarT "y") (VarT "z")) : X9
 --
 -- >>> algoritmoW $ Lam "f" $ Lam "x" $ Lam "y" $ App (Var "f") (Suma (Var "x") (Var "y"))
 -- [] ⊢ LamT "f" (ℕ->X4) (LamT "x" ℕ (LamT "y" ℕ (AppT (VarT "f") (SumaT (VarT "x") (VarT "y"))))) : ((ℕ->X4)->(ℕ->(ℕ->X4)))
@@ -444,9 +444,10 @@ instance Show Juicio where
 -- *** Exception: Error de Tipado.
 -- ...
 algoritmoW :: LamAB->Juicio
-algoritmoW e = Deriv (quitarExtras $ elimRep ctx, e', t)
+algoritmoW e = Deriv (quitarExtras $ elimRep ctx', e', t)
   where
     (Deriv (ctx, e', t), _) = w e []
+    ctx' = foldl compSust [] $ map (:[]) ctx
     elimRep [] = []
     elimRep (x:xs) = x : filter (x/=) (elimRep xs)
     quitarExtras = filter (\(n, _) -> head n /= 'X' && all isNumber (tail n))
