@@ -29,6 +29,7 @@ install:
   - stack install doctest
 
 script:
+  - stack test
   - stack exec hlint src/
   - stack exec doctest src/
 
