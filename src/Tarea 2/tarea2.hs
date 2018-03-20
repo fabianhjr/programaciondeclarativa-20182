@@ -134,9 +134,12 @@ instance Show EvalDPLL where
     "\n" ++
     case (cont1, cont2) of
       (Just e1, Nothing) -> show e1
-      (Just e1, Just e2) -> "||| (Inicia Rama A)\n" ++ (concatMap (\s -> '\t':s ++ "\n") . lines $ show e1) ++ "\n||| (Termina Rama A)" ++
-                            "\n" ++
-                            "||| (Inicia Rama B)\n" ++ (concatMap (\s -> '\t':s ++ "\n") . lines $ show e2) ++ "\n||| (Termina Rama B)"
+      (Just e1, Just e2) -> "||| (Inicia Rama A)\n" ++
+                            (concatMap (\s -> '\t':s ++ "\n") . lines $ show e1) ++ "\n" ++
+                            "||| (Termina Rama A)\n" ++
+                            "||| (Inicia Rama B)\n" ++
+                            (concatMap (\s -> '\t':s ++ "\n") . lines $ show e2) ++ "\n " ++
+                            "||| (Termina Rama B)"
       (Nothing, _)       -> "DPLL Incompleto"
 
 -- | Realiza el algoritmo DPLL y pinta en pantalla el árbol generado por la ejecución,
@@ -165,7 +168,8 @@ dpll' anterior | null c     = siguiente . return $ PFinal l True
                    siguiente . return . dpll' $
                      PInter ("Levantando literales puras: " ++ show puros) (puros ++ l) cSinPuros Nothing Nothing
                | otherwise =
-                   siguiente' (return . dpll' $ PInter ("Camino 1: " ++ show ramal) (ramal:l) (cSinUnit ramal) Nothing Nothing) $
+                   siguiente'
+                     (return . dpll' $ PInter ("Camino 1: " ++ show ramal) (ramal:l) (cSinUnit ramal) Nothing Nothing)
                      (return . dpll' $ PInter ("Camino 2: " ++ show (neg ramal)) (neg ramal:l) (cSinUnit $ neg ramal) Nothing Nothing)
   where
     (PInter op l c _ _) = anterior
