@@ -24,8 +24,8 @@ instance Show F where
 -- | Para usar QuickCheck sobre F
 instance Arbitrary F where
   arbitrary
-    = frequency [(3, Var . (:[]) <$> elements ['x'..'z']),
-                 (3, Neg . (:[]) <$> elements ['x'..'z']),
+    = frequency [(3, Var . (:[]) <$> elements ['a'..'f']),
+                 (3, Neg . (:[]) <$> elements ['a'..'f']),
                  (2, do f1 <- arbitrary
                         f2 <- arbitrary
                         return (Conj f1 f2)),
@@ -134,8 +134,9 @@ instance Show EvalDPLL where
     "\n" ++
     case (cont1, cont2) of
       (Just e1, Nothing) -> show e1
-      (Just e1, Just e2) -> "||| (Inicia Rama A)\n" ++ show e1 ++ "\n||| (Termina Rama A)" ++
-                            "\n||| (Inicia Rama B)\n" ++ show e2 ++ "\n||| (Termina Rama B)"
+      (Just e1, Just e2) -> "||| (Inicia Rama A)\n" ++ (concatMap (\s -> '\t':s ++ "\n") . lines $ show e1) ++ "\n||| (Termina Rama A)" ++
+                            "\n" ++
+                            "||| (Inicia Rama B)\n" ++ (concatMap (\s -> '\t':s ++ "\n") . lines $ show e2) ++ "\n||| (Termina Rama B)"
       (Nothing, _)       -> "DPLL Incompleto"
 
 -- | Realiza el algoritmo DPLL y pinta en pantalla el árbol generado por la ejecución,
@@ -176,8 +177,7 @@ dpll' anterior | null c     = siguiente . return $ PFinal l True
                   filter (/= [u]) c
     puros       = concatMap (filter (`noContradice` c)) c
     cSinPuros   = quitarL' puros $
-                  filter (not . null) $
-                  map (filter (`notElem` puros)) c
+                  filter (not . any (`elem` puros)) c
     ramal       = head (head c)
 
 noContradice :: Literal -> [Clausula] -> Bool
