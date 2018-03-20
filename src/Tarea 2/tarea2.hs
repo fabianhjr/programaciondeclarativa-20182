@@ -119,26 +119,31 @@ clausulas f = case f of
                        Just f' -> [f']
                        Nothing -> error "No es una FNC"
 
-data EvalDPLL = PFinal [Literal] Bool | PInter String [Literal] [Clausula] (Maybe EvalDPLL) deriving Eq
+data EvalDPLL = PFinal [Literal] Bool | PInter String [Literal] [Clausula] (Maybe EvalDPLL) (Maybe EvalDPLL) deriving Eq
 
 instance Show EvalDPLL where
   show (PFinal l b) = if b
                       then "SAT: " ++ show l
                       else "INSAT!"
-  show (PInter op l c cont) =
+  show (PInter op l c cont1 cont2) =
     op ++
     "\nLiterales: " ++ show l ++
     "\nClausulas: " ++ show c ++
     "\n" ++
     "-----\n" ++
     "\n" ++
-    case cont of
-      Just e  -> show e
-      Nothing -> "DPLL Incompleto"
+    case (cont1, cont2) of
+      (Just e1, Nothing) -> show e1
+      (Just e1, Just e2) -> "||| (Inicia Rama A)\n" ++ show e1 ++ "\n||| (Termina Rama A)" ++
+                            "\n||| (Inicia Rama B)\n" ++ show e2 ++ "\n||| (Termina Rama B)"
+      (Nothing, _)       -> "DPLL Incompleto"
 
 -- | Realiza el algoritmo DPLL y pinta en pantalla el árbol generado por la ejecución,
 --   y en cada nivel se indica la operación realizada.
 --
+-- >>> dpll []
+-- ...
+-- SAT: []
 -- >>> dpll $ clausulas $ fnc $ Conj (Var "x") (Neg "x")
 -- ...
 -- INSAT!
@@ -146,28 +151,34 @@ instance Show EvalDPLL where
 -- ...
 -- SAT: [¬y]
 dpll :: [Clausula] -> EvalDPLL
-dpll c = dpll' $ PInter "Inicio" [] c Nothing
+dpll c = dpll' $ PInter "Inicio" [] c Nothing Nothing
 
 dpll' :: EvalDPLL -> EvalDPLL
 dpll' (PFinal l b) = PFinal l b
 dpll' anterior | null c     = siguiente . return $ PFinal l True
                | any null c = siguiente . return $ PFinal l False
-               | any (\c' -> length c' == 1) c =
-                   siguiente . return $
-                   dpll' $ PInter ("Propagación unitaria de: " ++ show primerUnit) (primerUnit:l) cSinUnit Nothing
+               | any ((== 1) . length) c =
+                   siguiente . return . dpll' $
+                     PInter ("Propagación unitaria de: " ++ show primerUnit) (primerUnit:l) (cSinUnit primerUnit) Nothing Nothing
                | not . null $ puros =
-                   siguiente . return $
-                   dpll' $ PInter ("Levantando literales puras: " ++ show puros) (puros ++ l) cSinPuros Nothing
-               | otherwise = siguiente Nothing
+                   siguiente . return . dpll' $
+                     PInter ("Levantando literales puras: " ++ show puros) (puros ++ l) cSinPuros Nothing Nothing
+               | otherwise =
+                   siguiente' (return . dpll' $ PInter ("Camino 1: " ++ show ramal) (ramal:l) (cSinUnit ramal) Nothing Nothing) $
+                     (return . dpll' $ PInter ("Camino 2: " ++ show (neg ramal)) (neg ramal:l) (cSinUnit $ neg ramal) Nothing Nothing)
   where
-    (PInter op l c e) = anterior
-    siguiente  = PInter op l c
-    primerUnit = head . head $ filter (\c' -> length c' == 1) c
-    cSinUnit   = quitarL primerUnit $
-                 filter (primerUnit `notElem`) $
-                 filter (/= [primerUnit]) c
-    puros      = concatMap (filter (`noContradice` c)) c
-    cSinPuros  = filter (not . null) $ map (filter (`notElem` puros)) c
+    (PInter op l c _ _) = anterior
+    siguiente e = PInter op l c e Nothing
+    siguiente'  = PInter op l c
+    primerUnit  = head . head $ filter (\c' -> length c' == 1) c
+    cSinUnit u  = quitarL u $
+                  filter (u `notElem`) $
+                  filter (/= [u]) c
+    puros       = concatMap (filter (`noContradice` c)) c
+    cSinPuros   = quitarL' puros $
+                  filter (not . null) $
+                  map (filter (`notElem` puros)) c
+    ramal       = head (head c)
 
 noContradice :: Literal -> [Clausula] -> Bool
 noContradice _ [] = True
@@ -182,6 +193,9 @@ quitarL :: Literal -> [Clausula] -> [Clausula]
 quitarL (Var v) = map (filter (\c' -> c' /= Var v && c' /= Neg v))
 quitarL (Neg v) = map (filter (\c' -> c' /= Var v && c' /= Neg v))
 quitarL _ = undefined
+
+quitarL' :: [Literal] -> [Clausula] -> [Clausula]
+quitarL' = foldr ((.) . quitarL) id
 
 ejer1_1 = dpll $ concatMap clausulas $ [Disy (Var "a") (Var "b"),imp (neg $ Var "c") (neg $ Var "a")]++[neg $ imp (Var "b") (neg $ Var "c")]
 ejer1_2 = error "Te toca"
