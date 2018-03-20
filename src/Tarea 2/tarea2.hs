@@ -46,19 +46,7 @@ neg f = case f of
           Conj f1 f2 -> Disy (neg f1) (neg f2)
           Disy f1 f2 -> Conj (neg f1) (neg f2)
 
-{-===============================    ment themselvesTimes :: [Int] -> [Int], which takes each number n {\displaystyle n} n in the argument list and generates n {\displaystyle n} n copies of it in the result list.
-
-Board game example
-
-Suppose we are modeling a turn-based board game and want to find all the possible ways the game could progress. We would need a function to calculate the list of options for the next turn, given a current board state:
-
-nextConfigs :: Board -> [Board]
-nextConfigs bd = undefined -- details not important
-
-To figure out all the possibilities after two turns, we would again apply our function to each of the elements of our new list of board states. Our function takes a single board state and returns a list of possible new states. Thus, we can use monadic binding to map the function over each element from the list:
-
-nextConfigs bd >>= nextConfigs
-==============================-}
+{-=============================================================-}
 --Una literal es una fórmula atómica o la negación de una fórmula atómica.
 --Se considera que una 'Literal' únicamente es de la forma 'Var _' o 'Neg _'.
 type Literal = F
@@ -111,21 +99,39 @@ disyuntar l = case l of
                 [f]  -> f
                 f:xs -> Disy f $ disyuntar xs
 
+bajaDisy :: F -> F
+bajaDisy f = case f of
+               (Disy (Conj f1 f2) f3) -> Conj (Disy f1 f3) (Disy f2 f3)
+               (Disy f1 (Conj f2 f3)) -> Conj (Disy f1 f2) (Disy f1 f3)
+               (Conj f1 f2) -> Conj (bajaDisy f1) (bajaDisy f2)
+               (Disy f1 f2) -> Disy (bajaDisy f1) (bajaDisy f2)
+               (Var v) -> Var v
+               (Neg v) -> Neg v
+
 -- | Transforma una fórmula a FNC.
+-- prop> fnc (fnc f) == fnc f
+--
+-- >>> fnc $ Disy (Conj (Var "x") (Var "y")) (Var "z")
+-- ((x∨z)∧(y∨z))
 fnc :: F -> F
 fnc (Conj f1 f2) | soloConj f1 || soloDisy f1 = Conj f1 $ fnc f2
                  | soloConj f2 || soloDisy f2 = Conj f2 $ fnc f1
-                 | otherwise = undefined
+                 | otherwise = case (f1, f2) of
+                                 ((Conj f1' f1''), _) -> Conj (Conj (fnc f1') (fnc f1'')) $ fnc f2
+                                 (_, (Conj f2' f2'')) -> Conj (fnc f1) $ Conj (fnc f2') (fnc f2'')
+                                 _ -> fnc . bajaDisy $ Conj f1 f2
 fnc (Disy f1 f2) | soloDisy f1 && soloDisy f2 = Disy f1 f2
-                 | otherwise = undefined
-fnc f = case f of
-          Var p -> Var p
-          Neg p -> Neg p
-          _     -> undefined
+                 | otherwise = fnc . bajaDisy $ Disy f1 f2
+fnc (Var v) = Var v
+fnc (Neg v) = Neg v
 
 --Obtiene las cláusulas de una fórmula.
-clausulas::F->[Clausula]
-clausulas = error "Te toca"
+clausulas :: F -> [Clausula]
+clausulas f = case fnc f of
+                (Conj f1 f2) -> clausulas f1 ++ clausulas f2
+                _ -> case aplaztar f of
+                       Just f' -> [f']
+                       Nothing -> error "No es una FNC"
 
 --Realiza el algoritmo DPLL y pinta en pantalla el árbol generado por la ejecución,
 --y en cada nivel se indica la operación realizada.
