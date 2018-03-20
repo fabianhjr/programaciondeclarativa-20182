@@ -24,8 +24,8 @@ instance Show F where
 -- | Para usar QuickCheck sobre F
 instance Arbitrary F where
   arbitrary
-    = frequency [(3, Var <$> (:[]) <$> elements ['x'..'z']),
-                 (3, Neg <$> (:[]) <$> elements ['x'..'z']),
+    = frequency [(3, Var . (:[]) <$> elements ['x'..'z']),
+                 (3, Neg . (:[]) <$> elements ['x'..'z']),
                  (2, do f1 <- arbitrary
                         f2 <- arbitrary
                         return (Conj f1 f2)),
@@ -158,33 +158,29 @@ dpll' anterior | null c     = siguiente . return $ PFinal l True
                | not . null $ puros =
                    siguiente . return $
                    dpll' $ PInter ("Levantando literales puras: " ++ show puros) (puros ++ l) cSinPuros Nothing
-               | otherwise = siguiente $ Nothing
+               | otherwise = siguiente Nothing
   where
     (PInter op l c e) = anterior
     siguiente  = PInter op l c
     primerUnit = head . head $ filter (\c' -> length c' == 1) c
     cSinUnit   = quitarL primerUnit $
-                 filter (\c' -> primerUnit `notElem` c') $
-                 filter (\c' -> c' /= [primerUnit]) c
-    puros      = concat $ map (filter (\c' -> c' `noContradice` c)) c
-    cSinPuros  = filter (not . null) $ map (filter (\c' -> c' `notElem` puros)) c
+                 filter (primerUnit `notElem`) $
+                 filter (/= [primerUnit]) c
+    puros      = concatMap (filter (`noContradice` c)) c
+    cSinPuros  = filter (not . null) $ map (filter (`notElem` puros)) c
 
 noContradice :: Literal -> [Clausula] -> Bool
-noContradice l [] = True
+noContradice _ [] = True
 noContradice l (c:cs) = case c of
                           []      -> noContradice l cs
                           (l':ls) -> case (l, l') of
-                                       ((Var v), (Neg v')) -> if v == v'
-                                                              then False
-                                                              else noContradice l ((ls):cs)
-                                       ((Neg v), (Var v')) -> if v == v'
-                                                              then False
-                                                              else noContradice l ((ls):cs)
-                                       _ -> noContradice l ((ls):cs)
+                                       (Var v, Neg v') -> (v /= v') && noContradice l (ls:cs)
+                                       (Neg v, Var v') -> (v /= v') && noContradice l (ls:cs)
+                                       _ -> noContradice l (ls:cs)
 
 quitarL :: Literal -> [Clausula] -> [Clausula]
-quitarL (Var v) = map (filter (\c' -> c' /= (Var v) && c' /= (Neg v)))
-quitarL (Neg v) = map (filter (\c' -> c' /= (Var v) && c' /= (Neg v)))
+quitarL (Var v) = map (filter (\c' -> c' /= Var v && c' /= Neg v))
+quitarL (Neg v) = map (filter (\c' -> c' /= Var v && c' /= Neg v))
 quitarL _ = undefined
 
 ejer1_1 = dpll $ concatMap clausulas $ [Disy (Var "a") (Var "b"),imp (neg $ Var "c") (neg $ Var "a")]++[neg $ imp (Var "b") (neg $ Var "c")]
