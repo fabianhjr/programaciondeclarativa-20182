@@ -119,28 +119,29 @@ clausulas f = case f of
                        Just f' -> [f']
                        Nothing -> error "No es una FNC"
 
-data EvalDPLL = PFinal [Literal] Bool | PInter String [Literal] [Clausula] (Maybe EvalDPLL) (Maybe EvalDPLL) deriving Eq
+data EvalDPLL = PFinal Bool   [Literal] |
+                PInter String [Literal] [Clausula] (Maybe EvalDPLL) (Maybe EvalDPLL) deriving Eq
 
 instance Show EvalDPLL where
-  show (PFinal l b) = if b
+  show (PFinal b l) = if b
                       then "SAT: " ++ show l
                       else "INSAT!"
   show (PInter op l c cont1 cont2) =
     op ++
-    "\nLiterales: " ++ show l ++
-    "\nClausulas: " ++ show c ++
-    "\n" ++
+    "Literales: " ++ show l ++ "\n" ++
+    "Clausulas: " ++ show c ++ "\n" ++
     "-----\n" ++
     "\n" ++
     case (cont1, cont2) of
       (Just e1, Nothing) -> show e1
+      (Nothing, Just e2) -> show e2
       (Just e1, Just e2) -> "||| (Inicia Rama A)\n" ++
                             (concatMap (\s -> '\t':s ++ "\n") . lines $ show e1) ++ "\n" ++
                             "||| (Termina Rama A)\n" ++
                             "||| (Inicia Rama B)\n" ++
                             (concatMap (\s -> '\t':s ++ "\n") . lines $ show e2) ++ "\n " ++
-                            "||| (Termina Rama B)"
-      (Nothing, _)       -> "DPLL Incompleto"
+                            "||| (Termina Rama B)\n"
+      (Nothing, Nothing) -> "DPLL Incompleto"
 
 -- | Realiza el algoritmo DPLL y pinta en pantalla el árbol generado por la ejecución,
 --   y en cada nivel se indica la operación realizada.
@@ -159,23 +160,27 @@ dpll c = dpll' $ PInter "Inicio" [] c Nothing Nothing
 
 dpll' :: EvalDPLL -> EvalDPLL
 dpll' (PFinal l b) = PFinal l b
-dpll' anterior | null c     = siguiente . return $ PFinal l True
-               | any null c = siguiente . return $ PFinal l False
+dpll' anterior | null c     = siguiente . return $ PFinal True  l
+               | any null c = siguiente . return $ PFinal False l
                | any ((== 1) . length) c =
                    siguiente . return . dpll' $
-                     PInter ("Propagación unitaria de: " ++ show primerUnit) (primerUnit:l) (cSinUnit primerUnit) Nothing Nothing
+                     PInter ("Propagación unitaria de: " ++ show primerUnit)
+                       (primerUnit:l) (cSinUnit primerUnit) Nothing Nothing
                | not . null $ puros =
                    siguiente . return . dpll' $
-                     PInter ("Levantando literales puras: " ++ show puros) (puros ++ l) cSinPuros Nothing Nothing
+                     PInter ("Levantando literales puras: " ++ show puros)
+                       (puros ++ l) cSinPuros Nothing Nothing
                | otherwise =
                    siguiente'
-                     (return . dpll' $ PInter ("Camino 1: " ++ show ramal) (ramal:l) (cSinUnit ramal) Nothing Nothing)
-                     (return . dpll' $ PInter ("Camino 2: " ++ show (neg ramal)) (neg ramal:l) (cSinUnit $ neg ramal) Nothing Nothing)
+                     (return . dpll' $ PInter ("Camino 1: " ++ show ramal)
+                       (ramal:l) (cSinUnit ramal) Nothing Nothing)
+                     (return . dpll' $ PInter ("Camino 2: " ++ show (neg ramal))
+                       (neg ramal:l) (cSinUnit $ neg ramal) Nothing Nothing)
   where
     (PInter op l c _ _) = anterior
     siguiente e = PInter op l c e Nothing
     siguiente'  = PInter op l c
-    primerUnit  = head . head $ filter (\c' -> length c' == 1) c
+    primerUnit  = head . head $ filter ((== 1) . length) c
     cSinUnit u  = quitarL u $
                   filter (u `notElem`) $
                   filter (/= [u]) c
@@ -185,27 +190,42 @@ dpll' anterior | null c     = siguiente . return $ PFinal l True
     ramal       = head (head c)
 
 noContradice :: Literal -> [Clausula] -> Bool
-noContradice _ [] = True
-noContradice l (c:cs) = case c of
-                          []      -> noContradice l cs
-                          (l':ls) -> case (l, l') of
-                                       (Var v, Neg v') -> (v /= v') && noContradice l (ls:cs)
-                                       (Neg v, Var v') -> (v /= v') && noContradice l (ls:cs)
-                                       _ -> noContradice l (ls:cs)
+noContradice _ []           = True
+noContradice l ([]:cs)      = noContradice l cs
+noContradice l ((l':ls):cs) = case (l, l') of
+                                (Var v, Neg v') -> (v /= v') && noContradice l (ls:cs)
+                                (Neg v, Var v') -> (v /= v') && noContradice l (ls:cs)
+                                _ -> noContradice l (ls:cs)
 
 quitarL :: Literal -> [Clausula] -> [Clausula]
-quitarL (Var v) = map (filter (\c' -> c' /= Var v && c' /= Neg v))
-quitarL (Neg v) = map (filter (\c' -> c' /= Var v && c' /= Neg v))
-quitarL _ = undefined
+quitarL l = case l of
+              (Var v) -> map (filter (\c' -> c' /= Var v && c' /= Neg v))
+              (Neg v) -> map (filter (\c' -> c' /= Var v && c' /= Neg v))
+              _       -> undefined
 
 quitarL' :: [Literal] -> [Clausula] -> [Clausula]
 quitarL' = foldr ((.) . quitarL) id
 
-ejer1_1 = dpll $ concatMap clausulas $ [Disy (Var "a") (Var "b"),imp (neg $ Var "c") (neg $ Var "a")]++[neg $ imp (Var "b") (neg $ Var "c")]
-ejer1_2 = error "Te toca"
-ejer1_3 = error "Te toca"
-ejer1_4 = error "Te toca"
+dpllSat :: EvalDPLL -> Bool
+dpllSat (PFinal b _)         = b
+dpllSat (PInter _ _ _ r1 r2) = maybe False dpllSat r1 || maybe False dpllSat r2
 
+ejer1_1 = dpll $ concatMap (clausulas . fnc) $ [Disy (Var "a") (Var "b"),
+                                                imp (neg $ Var "c") (neg $ Var "a")] ++
+                                               [neg $ imp (Var "b") (neg $ Var "c")]
+
+ejer1_2 = dpll $ concatMap (clausulas . fnc) $ [Disy (imp (Var "p") (Var "r")) (Conj (Neg "s") (Var "p")),
+                                                imp (Var "s") (neg (Conj (Var "p") (Var "r")))] ++
+                                               [Conj (Var "r") (Neg "s")]
+
+ejer1_3 = dpll $ concatMap (clausulas . fnc) $ Disy (imp (Var "s") (Var "p")) (imp (Var "t") (Var "q")) :
+                                               [neg $ Disy (imp (Var "s") (Var "q")) (imp (Var "t") (Var "p"))]
+
+ejer1_4 = dpll $ concatMap (clausulas . fnc) $ [Conj (Var "p") (Var "q"),
+                                                Conj (Var "r") (Neg "s"),
+                                                imp (Var "q") (imp (Var "p") (Var "t")),
+                                                imp (Var "t") (imp (Var "r") (Disy (Var "s") (Var "w")))] ++
+                                               [Neg "w"]
 
 ejer2_a = error "Te toca"
 ejer2_b = error "Te toca"
