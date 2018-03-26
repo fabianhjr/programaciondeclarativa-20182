@@ -127,7 +127,7 @@ instance Show EvalDPLL where
                       then "SAT: " ++ show l
                       else "INSAT!"
   show (PInter op l c cont1 cont2) =
-    op ++
+    op ++ "\n" ++
     "Literales: " ++ show l ++ "\n" ++
     "Clausulas: " ++ show c ++ "\n" ++
     "-----\n" ++
@@ -227,8 +227,16 @@ ejer1_4 = dpll $ concatMap (clausulas . fnc) $ [Conj (Var "p") (Var "q"),
                                                 imp (Var "t") (imp (Var "r") (Disy (Var "s") (Var "w")))] ++
                                                [Neg "w"]
 
-ejer2_a = error "Te toca"
-ejer2_b = error "Te toca"
+ejer2_a = dpll $ concatMap (clausulas . fnc) $ [imp (Var "L") (Disy (Var "P") (Var "I")),
+                                                imp (Var "R") (Var "L"),
+                                                imp (Var "P") (Var "GA"),
+                                                Conj (Neg "GA") (Var "R")] ++
+                                               [Neg "P"]
+
+ejer2_b = dpll $ concatMap (clausulas . fnc) $ [Disy (Var "M") (Disy (Var "C") (Var "K")),
+                                                imp (Conj (Var "M") (Neg "K")) (Var "C"),
+                                                Disy (Conj (Var "M") (Var "K")) (Conj (Neg "M") (Neg "K")),
+                                                imp (Var "C") (Var "M")]
 
 
 
