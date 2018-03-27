@@ -233,10 +233,10 @@ ejer2_a = dpll $ concatMap (clausulas . fnc) $ [imp (Var "L") (Disy (Var "P") (V
                                                 Conj (Neg "GA") (Var "R")] ++
                                                [Neg "P"]
 
-ejer2_b = dpll $ concatMap (clausulas . fnc) $ [Disy (Var "M") (Disy (Var "C") (Var "K")),
-                                                imp (Conj (Var "M") (Neg "K")) (Var "C"),
-                                                Disy (Conj (Var "M") (Var "K")) (Conj (Neg "M") (Neg "K")),
-                                                imp (Var "C") (Var "M")]
+ejer2_b = dpll $ concatMap (clausulas . fnc) [Disy (Var "M") (Disy (Var "C") (Var "K")),
+                                              imp (Conj (Var "M") (Neg "K")) (Var "C"),
+                                              Disy (Conj (Var "M") (Var "K")) (Conj (Neg "M") (Neg "K")),
+                                              imp (Var "C") (Var "M")]
 
 
 
