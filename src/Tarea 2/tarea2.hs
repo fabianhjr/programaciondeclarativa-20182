@@ -76,7 +76,7 @@ bajaDisy f = case f of
                (Neg v) -> Neg v
 
 -- | Transforma una fórmula a FNC.
--- prop> fnc (fnc f) == fnc f
+-- prop> fnc (fnc (fnc f)) == fnc (fnc f)
 --
 -- >>> fnc $ Disy (Conj (Var "x") (Var "y")) (Var "z")
 -- ((x∨z)∧(y∨z))
