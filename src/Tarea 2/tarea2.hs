@@ -184,10 +184,12 @@ dpll' anterior | null c     = siguiente . return $ PFinal True  l
     cSinUnit u  = quitarL u $
                   filter (u `notElem`) $
                   filter (/= [u]) c
-    puros       = concatMap (filter (`noContradice` c)) c
+    puros       = dedup $ concatMap (filter (`noContradice` c)) c
     cSinPuros   = quitarL' puros $
                   filter (not . any (`elem` puros)) c
     ramal       = head (head c)
+    dedup []     = []
+    dedup (x:xs) = x : filter (/=x) xs
 
 noContradice :: Literal -> [Clausula] -> Bool
 noContradice _ []           = True
@@ -216,7 +218,7 @@ ejer1_1 = dpll $ concatMap (clausulas . fnc) $ [Disy (Var "a") (Var "b"),
 
 ejer1_2 = dpll $ concatMap (clausulas . fnc) $ [Disy (imp (Var "p") (Var "r")) (Conj (Neg "s") (Var "p")),
                                                 imp (Var "s") (neg (Conj (Var "p") (Var "r")))] ++
-                                               [Conj (Var "r") (Neg "s")]
+                                               [Disy (Var "r") (Neg "s")]
 
 ejer1_3 = dpll $ concatMap (clausulas . fnc) $ Disy (imp (Var "s") (Var "p")) (imp (Var "t") (Var "q")) :
                                                [neg $ Disy (imp (Var "s") (Var "q")) (imp (Var "t") (Var "p"))]
