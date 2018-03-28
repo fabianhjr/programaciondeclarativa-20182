@@ -76,10 +76,12 @@ bajaDisy f = case f of
                (Neg v) -> Neg v
 
 -- | Transforma una fórmula a FNC.
--- prop> fnc (fnc (fnc f)) == fnc (fnc f)
+-- prop> fnc (fnc f) == fnc f
 --
 -- >>> fnc $ Disy (Conj (Var "x") (Var "y")) (Var "z")
 -- ((x∨z)∧(y∨z))
+-- >>> fnc $ Disy (Var "z1") $ Disy (Var "z2") $ Disy (Var "z3") $ Disy (Var "z4") (Conj (Var "x") (Var "y"))
+-- ((z1∨(z2∨(z3∨(z4∨x))))∧(z1∨(z2∨(z3∨(z4∨y)))))
 fnc :: F -> F
 fnc (Disy f1 f2) | soloDisy f1 && soloDisy f2 = Disy f1 f2
                  | otherwise = fnc . bajaDisy $ Disy f1 f2
@@ -87,40 +89,25 @@ fnc (Conj f1 f2) = Conj (fnc f1) (fnc f2)
 fnc (Var v) = Var v
 fnc (Neg v) = Neg v
 
--- | Regresa una lista de Literales si una Formula es aplaztable (solo conj o solo disy)
--- >>> aplaztar $ Disy (Disy (Var "x") (Var "y")) (Var "z")
--- Just [x,y,z]
--- >>> aplaztar $ Conj (Disy (Var "x") (Var "y")) (Var "z")
--- Nothing
-aplaztar :: F -> Maybe [F]
-aplaztar f = case f of
-               (Var v) -> Just [Var v]
-               (Neg v) -> Just [Neg v]
-               (Conj f1 f2) -> if soloConj f1 && soloConj f2
-                               then continuar f1 f2
-                               else Nothing
-               (Disy f1 f2) -> if soloDisy f1 && soloDisy f2
-                               then continuar f1 f2
-                               else Nothing
-  where continuar f1 f2 = do f1' <- aplaztar f1
-                             f2' <- aplaztar f2
-                             return $ f1' ++ f2'
-
---Obtiene las cláusulas de una fórmula.
+-- | Obtiene las cláusulas de una fórmula normal conjuntiva.
 clausulas :: F -> [Clausula]
 clausulas f = case f of
+                (Var v) -> [[Var v]]
+                (Neg v) -> [[Neg v]]
                 (Conj f1 f2) -> clausulas f1 ++ clausulas f2
-                _ -> case aplaztar f of
-                       Just f' -> [f']
-                       Nothing -> error "No es una FNC"
+                (Disy f1 f2) -> if soloDisy f1 && soloDisy f2
+                                then do f1' <- clausulas f1
+                                        f2' <- clausulas f2
+                                        [f1' ++ f2']
+                                else error "No es una FNC"
 
-data EvalDPLL = PFinal Bool   [Literal] |
-                PInter String [Literal] [Clausula] (Maybe EvalDPLL) (Maybe EvalDPLL) deriving Eq
+data EvalDPLL = PInter String [Literal] [Clausula] (Maybe EvalDPLL) (Maybe EvalDPLL) |
+                PFinal (Maybe [Literal]) deriving Eq
 
 instance Show EvalDPLL where
-  show (PFinal b l) = if b
-                      then "SAT: " ++ show l
-                      else "INSAT!"
+  show (PFinal l) = case l of
+                    Just l' -> "SAT: " ++ show l'
+                    Nothing -> "INSAT!"
   show (PInter op l c cont1 cont2) =
     op ++ "\n" ++
     "Literales: " ++ show l ++ "\n" ++
@@ -154,9 +141,9 @@ dpll :: [Clausula] -> EvalDPLL
 dpll c = dpll' $ PInter "Inicio" [] c Nothing Nothing
 
 dpll' :: EvalDPLL -> EvalDPLL
-dpll' (PFinal l b) = PFinal l b
-dpll' anterior | null c     = siguiente . return $ PFinal True  l
-               | any null c = siguiente . return $ PFinal False l
+dpll' (PFinal l) = PFinal l
+dpll' anterior | null c     = siguiente . return $ PFinal (Just l)
+               | any null c = siguiente . return $ PFinal Nothing
                | any ((== 1) . length) c =
                    siguiente . return . dpll' $
                      PInter ("Propagación unitaria de: " ++ show primerUnit)
@@ -204,32 +191,53 @@ quitarL' :: [Literal] -> [Clausula] -> [Clausula]
 quitarL' = foldr ((.) . quitarL) id
 
 dpllSat :: EvalDPLL -> Bool
-dpllSat (PFinal b _)         = b
+dpllSat (PFinal l) = case l of
+                     Just _ ->  True
+                     Nothing -> False
 dpllSat (PInter _ _ _ r1 r2) = maybe False dpllSat r1 || maybe False dpllSat r2
 
+
+-- |
+-- >>> dpllSat $ ejer1_1
+-- True
 ejer1_1 = dpll $ concatMap (clausulas . fnc) $ [Disy (Var "a") (Var "b"),
                                                 imp (neg $ Var "c") (neg $ Var "a")] ++
                                                [neg $ imp (Var "b") (neg $ Var "c")]
 
+-- |
+-- >>> dpllSat $ ejer1_2
+-- True
 ejer1_2 = dpll $ concatMap (clausulas . fnc) $ [Disy (imp (Var "p") (Var "r")) (Conj (Neg "s") (Var "p")),
                                                 imp (Var "s") (neg (Conj (Var "p") (Var "r")))] ++
                                                [Disy (Var "r") (Neg "s")]
 
+-- |
+-- >>> dpllSat $ ejer1_3
+-- False
 ejer1_3 = dpll $ concatMap (clausulas . fnc) $ Disy (imp (Var "s") (Var "p")) (imp (Var "t") (Var "q")) :
                                                [neg $ Disy (imp (Var "s") (Var "q")) (imp (Var "t") (Var "p"))]
 
+-- |
+-- >>> dpllSat $ ejer1_4
+-- False
 ejer1_4 = dpll $ concatMap (clausulas . fnc) $ [Conj (Var "p") (Var "q"),
                                                 Conj (Var "r") (Neg "s"),
                                                 imp (Var "q") (imp (Var "p") (Var "t")),
                                                 imp (Var "t") (imp (Var "r") (Disy (Var "s") (Var "w")))] ++
                                                [Neg "w"]
 
+-- |
+-- >>> dpllSat $ ejer2_a
+-- True
 ejer2_a = dpll $ concatMap (clausulas . fnc) $ [imp (Var "L") (Disy (Var "P") (Var "I")),
                                                 imp (Var "R") (Var "L"),
                                                 imp (Var "P") (Var "GA"),
                                                 Conj (Neg "GA") (Var "R")] ++
                                                [Neg "P"]
 
+-- |
+-- >>> dpllSat $ ejer2_b
+-- True
 ejer2_b = dpll $ concatMap (clausulas . fnc) [Disy (Var "M") (Disy (Var "C") (Var "K")),
                                               imp (Conj (Var "M") (Neg "K")) (Var "C"),
                                               Disy (Conj (Var "M") (Var "K")) (Conj (Neg "M") (Neg "K")),
