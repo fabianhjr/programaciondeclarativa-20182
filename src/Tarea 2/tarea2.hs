@@ -81,14 +81,9 @@ bajaDisy f = case f of
 -- >>> fnc $ Disy (Conj (Var "x") (Var "y")) (Var "z")
 -- ((x∨z)∧(y∨z))
 fnc :: F -> F
-fnc (Conj f1 f2) | soloConj f1 || soloDisy f1 = Conj f1 $ fnc f2
-                 | soloConj f2 || soloDisy f2 = Conj f2 $ fnc f1
-                 | otherwise = case (f1, f2) of
-                                 (Conj f1' f1'', _) -> Conj (Conj (fnc f1') (fnc f1'')) $ fnc f2
-                                 (_, Conj f2' f2'') -> Conj (fnc f1) $ Conj (fnc f2') (fnc f2'')
-                                 _ -> fnc . bajaDisy $ Conj f1 f2
 fnc (Disy f1 f2) | soloDisy f1 && soloDisy f2 = Disy f1 f2
                  | otherwise = fnc . bajaDisy $ Disy f1 f2
+fnc (Conj f1 f2) = Conj (fnc f1) (fnc f2)
 fnc (Var v) = Var v
 fnc (Neg v) = Neg v
 
