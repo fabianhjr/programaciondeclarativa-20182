@@ -242,7 +242,3 @@ ejer2_b = dpll $ concatMap (clausulas . fnc) [Disy (Var "M") (Disy (Var "C") (Va
                                               imp (Conj (Var "M") (Neg "K")) (Var "C"),
                                               Disy (Conj (Var "M") (Var "K")) (Conj (Neg "M") (Neg "K")),
                                               imp (Var "C") (Var "M")]
-
-
-
-

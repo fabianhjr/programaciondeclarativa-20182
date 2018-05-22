@@ -1,4 +1,4 @@
-module Tarea where
+module Tarea0 where
 
 data Nat = Cero | S Nat deriving Show
 

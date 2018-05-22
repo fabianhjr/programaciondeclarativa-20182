@@ -17,7 +17,8 @@ author:              "Fabián Heredia Montiel"
 description: Please see the README on Github at <https://github.com/fabianhjr/programaciondeclarativa-20182#readme>
 
 dependencies:
-- base       >= 4.7 && < 5
+- base       >= 4.7   && < 5
+- mtl        >= 2.2.2 && < 3
 - QuickCheck 
 
 library:
